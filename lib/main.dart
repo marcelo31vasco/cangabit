@@ -370,7 +370,7 @@ class _HomeShellState extends State<HomeShell> {
     final session = widget.controller.session!;
     final pages = [
       DashboardPage(controller: widget.controller),
-      ProductsPage(controller: widget.controller),
+      ProductCatalogPage(controller: widget.controller),
       OperationsPage(controller: widget.controller),
       AlertsPage(controller: widget.controller),
       ReportsPage(controller: widget.controller),
@@ -383,7 +383,10 @@ class _HomeShellState extends State<HomeShell> {
           return Scaffold(
             appBar: AppBar(
               title: Text(widget.controller.activeStore.name),
-              actions: [_SessionMenu(controller: widget.controller)],
+              actions: [
+                _AlertBell(count: widget.controller.alerts.where((item) => !item.acknowledged).length),
+                _SessionMenu(controller: widget.controller),
+              ],
             ),
             body: pages[_index],
             bottomNavigationBar: NavigationBar(
@@ -432,27 +435,27 @@ class _HomeShellState extends State<HomeShell> {
                   destinations: const [
                     NavigationRailDestination(
                       icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard),
+                      selectedIcon: Icon(Icons.dashboard_outlined),
                       label: Text('Dashboard'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.inventory_2_outlined),
-                      selectedIcon: Icon(Icons.inventory_2),
+                      selectedIcon: Icon(Icons.inventory_2_outlined),
                       label: Text('Produtos'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.qr_code_scanner_outlined),
-                      selectedIcon: Icon(Icons.qr_code_scanner),
+                      selectedIcon: Icon(Icons.qr_code_scanner_outlined),
                       label: Text('Operação'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.notifications_outlined),
-                      selectedIcon: Icon(Icons.notifications),
+                      selectedIcon: Icon(Icons.notifications_outlined),
                       label: Text('Alertas'),
                     ),
                     NavigationRailDestination(
                       icon: Icon(Icons.summarize_outlined),
-                      selectedIcon: Icon(Icons.summarize),
+                      selectedIcon: Icon(Icons.summarize_outlined),
                       label: Text('Relatórios'),
                     ),
                   ],
@@ -486,6 +489,10 @@ class _HomeShellState extends State<HomeShell> {
                                 ],
                               ),
                             ),
+                            _AlertBell(
+                              count: widget.controller.alerts.where((item) => !item.acknowledged).length,
+                            ),
+                            const SizedBox(width: 12),
                             _SessionMenu(controller: widget.controller),
                           ],
                         ),
@@ -513,6 +520,8 @@ class _SessionMenu extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        const Icon(Icons.store_mall_directory_outlined, color: corSecundariaNordestao),
+        const SizedBox(width: 8),
         DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: controller.activeStore.id,
@@ -561,8 +570,8 @@ class DashboardPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 12,
+            runSpacing: 12,
             children: [
               KpiCard(label: 'Próximos ao vencimento', value: '${dashboard.nearExpiry}'),
               KpiCard(label: 'Produtos vencidos', value: '${dashboard.expired}'),
@@ -604,6 +613,37 @@ class DashboardPage extends StatelessWidget {
           LogisticsOverviewCard(controller: controller),
         ],
       ),
+    );
+  }
+}
+
+class _AlertBell extends StatelessWidget {
+  const _AlertBell({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 8, right: 8),
+          child: Icon(Icons.notifications_active_outlined, color: corSecundariaNordestao),
+        ),
+        if (count > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: corRiscoCritico,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -899,7 +939,7 @@ class _OperationsPageState extends State<OperationsPage> {
     );
     showSnack(
       context,
-      ok ? 'Venda processada com FEFO.' : 'Não foi possível processar a venda.',
+      ok ? 'Venda processada pela prioridade de validade.' : 'Não foi possível processar a venda.',
     );
     setState(() {});
   }
@@ -1047,7 +1087,7 @@ class _BatchFormCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               const Text(
-                'RF03, RF04, RF05, RF06 e RF07: leitura de EAN-13, registro de lote/validade, histórico, controle por lote e FEFO.',
+                'RF03, RF04, RF05, RF06 e RF07: leitura de EAN-13, registro de lote/validade, histórico e prioridade de saída por validade.',
                 style: TextStyle(color: corTextoSecundario, height: 1.5),
               ),
               const SizedBox(height: 16),
@@ -1353,6 +1393,159 @@ class ResponsiveBatchFormCard extends StatelessWidget {
   }
 }
 
+class ProductCatalogPage extends StatefulWidget {
+  const ProductCatalogPage({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<ProductCatalogPage> createState() => _ProductCatalogPageState();
+}
+
+class _ProductCatalogPageState extends State<ProductCatalogPage> {
+  String? _selectedProductId;
+
+  @override
+  Widget build(BuildContext context) {
+    final products = widget.controller.filteredProducts;
+    final visibleProducts = _selectedProductId == null
+        ? products
+        : products.where((item) => item.id == _selectedProductId).toList();
+    final selected = _selectedProductId == null
+        ? null
+        : products.where((item) => item.id == _selectedProductId).firstOrNull;
+    final selectedLots = selected == null
+        ? <StockBatch>[]
+        : widget.controller.batchesForProduct(selected.id);
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 460,
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Pesquisar por nome, EAN, categoria ou lote',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: widget.controller.updateSearch,
+                ),
+              ),
+              SizedBox(
+                width: 280,
+                child: DropdownButtonFormField<String?>(
+                  value: _selectedProductId,
+                  decoration: const InputDecoration(labelText: 'Filtrar produto'),
+                  items: [
+                    const DropdownMenuItem<String?>(value: null, child: Text('Todos')),
+                    ...products.map(
+                      (product) => DropdownMenuItem<String?>(
+                        value: product.id,
+                        child: Text(product.description),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _selectedProductId = value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (selected != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Validades de ${selected.description}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    ...selectedLots.map(
+                      (lot) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Lote ${lot.batchCode} • ${lot.storeName}'),
+                        subtitle: Text(
+                          'Validade ${shortDate(lot.expiresAt)} • ${lot.quantityCurrent} un',
+                        ),
+                        trailing: StatusChip(
+                          label: lot.zone.label,
+                          color: zoneColor(lot.zone),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (selected != null) const SizedBox(height: 16),
+          Expanded(
+            child: ListView.separated(
+              itemCount: visibleProducts.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final product = visibleProducts[index];
+                final balance = widget.controller.totalStockForProduct(product.id);
+                final lots = widget.controller.batchesForProduct(product.id);
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                product.description,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            StatusChip(
+                              label: balance <= product.minStock ? 'Ruptura' : 'Estavel',
+                              color: balance <= product.minStock ? corRiscoCritico : corRiscoSeguro,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'EAN ${product.ean13} • ${product.category} • ${product.sector}',
+                          style: const TextStyle(color: corTextoSecundario),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            MiniStat(label: 'Saldo', value: '$balance'),
+                            MiniStat(label: 'Minimo', value: '${product.minStock}'),
+                            MiniStat(label: 'Lotes', value: '${lots.length}'),
+                            MiniStat(label: 'Preco', value: money(product.unitValue)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OperationsActionsCard extends StatelessWidget {
   const _OperationsActionsCard({
     required this.controller,
@@ -1400,7 +1593,7 @@ class _OperationsActionsCard extends StatelessWidget {
             ),
             const Divider(color: corBordaSuave, height: 28),
             const Text(
-              'Simular saída de venda com FEFO',
+              'Simular saída por prioridade de validade',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
@@ -1440,6 +1633,23 @@ class AlertsPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const Icon(Icons.notifications_active_outlined, color: corSecundariaNordestao),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${alerts.where((item) => !item.acknowledged).length} alerta(s) enviados para a central do app.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -1564,6 +1774,7 @@ class ReportsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final report = controller.report;
     final audits = controller.auditTrail.take(12).toList();
+    final csv = controller.generateDailyReportCsv();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -1583,6 +1794,32 @@ class ReportsPage extends StatelessWidget {
                 value: '${report.lossReduction.toStringAsFixed(1)}%',
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: csv));
+                if (context.mounted) {
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('CSV diario copiado'),
+                      content: SizedBox(
+                        width: 640,
+                        child: SingleChildScrollView(
+                          child: SelectableText(csv),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              },
+              style: outlinedButton(),
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Exportar relatorio diario CSV'),
+            ),
           ),
           const SizedBox(height: 16),
           Card(
@@ -1687,7 +1924,7 @@ class FefoQueueCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Fila FEFO',
+              'Saida por prioridade de validade',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
@@ -1712,26 +1949,37 @@ class FefoQueueCard extends StatelessWidget {
 }
 
 class KpiCard extends StatelessWidget {
-  const KpiCard({super.key, required this.label, required this.value});
+  const KpiCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.width = 150,
+  });
 
   final String label;
   final String value;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 220,
+      width: width,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: corTextoSecundario, height: 1.4)),
-              const SizedBox(height: 10),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: corTextoSecundario, height: 1.35, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
               Text(
                 value,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -1808,6 +2056,7 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
     autoStart: true,
   );
   bool _handled = false;
+  bool _enableWebCamera = false;
 
   @override
   void dispose() {
@@ -1827,7 +2076,7 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
+    if (kIsWeb && !_enableWebCamera) {
       return Scaffold(
         appBar: AppBar(title: const Text('Captura de código')),
         body: Padding(
@@ -1837,6 +2086,13 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
               const Text(
                 'No web, a captura usa entrada manual para evitar travamentos de câmera em navegadores.',
                 style: TextStyle(color: corTextoSecundario, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _enableWebCamera = true),
+                style: outlinedButton(),
+                icon: const Icon(Icons.videocam_outlined),
+                label: const Text('Usar camera'),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -1934,6 +2190,8 @@ class AppController extends ChangeNotifier {
   List<StockBatch> get recentBatches => _repository.recentBatches(session!.storeId);
   ReportSnapshot get report => _repository.reportFor(session!.storeId);
   List<AuditRecord> get auditTrail => _repository.auditFor(session!.storeId);
+  String generateDailyReportCsv() =>
+      _repository.generateDailyReportCsv(session!.storeId);
   ProductRecord? findProductByEan(String ean13) =>
       _repository.findProductByEan(session!.storeId, ean13);
   CategoryProfile? categoryProfileForName(String name) =>
@@ -2301,7 +2559,7 @@ class InventoryRepository {
             description:
                 '${batch.productDescription} • lote ${batch.batchCode} • ${batch.quantityCurrent} un • validade ${shortDate(batch.expiresAt)}',
             zone: zone,
-            channel: zone == RiskZone.critical ? 'Push + WhatsApp' : 'Push',
+            channel: zone == RiskZone.critical ? 'Notificacao no app + WhatsApp' : 'Notificacao no app',
             createdAt: DateTime.now(),
           ),
         );
@@ -2331,7 +2589,7 @@ class InventoryRepository {
             description:
                 '${product.description} com saldo $total un e estoque mínimo ${product.minStock} un.',
             zone: RiskZone.stockout,
-            channel: 'Push + E-mail',
+            channel: 'Notificacao no app + E-mail',
             createdAt: DateTime.now(),
           ),
         );
@@ -2345,7 +2603,7 @@ class InventoryRepository {
         storeId: storeId,
         userName: userName,
         action: 'Varredura operacional',
-        details: 'Motor diário executado para validade, FEFO e ruptura.',
+        details: 'Motor diario executado para validade, prioridade de saida e ruptura.',
         financialImpact: 0,
         createdAt: DateTime.now(),
       ),
@@ -2553,6 +2811,29 @@ class InventoryRepository {
 
   List<AuditRecord> auditFor(String storeId) {
     return audits.where((item) => item.storeId == storeId).toList();
+  }
+
+  String generateDailyReportCsv(String storeId) {
+    final store = storeById(storeId);
+    final storeBatches = batches.where((item) => item.storeId == storeId).toList();
+    final rows = <String>[
+      'loja,ean,produto,lote,quantidade,validade,status,valor_unitario'
+    ];
+    for (final batch in storeBatches) {
+      rows.add(
+        [
+          csvEscape(store.name),
+          csvEscape(batch.ean13),
+          csvEscape(batch.productDescription),
+          csvEscape(batch.batchCode),
+          batch.quantityCurrent.toString(),
+          shortDate(batch.expiresAt),
+          batch.zone.label,
+          batch.unitValue.toStringAsFixed(2),
+        ].join(','),
+      );
+    }
+    return rows.join('\n');
   }
 
   void _seed() {
@@ -3189,6 +3470,11 @@ String normalizeSeedText(String value) {
       .replaceAll('Ã‰', 'E')
       .replaceAll('Ã“', 'O')
       .replaceAll('Â', '');
+}
+
+String csvEscape(String value) {
+  final escaped = value.replaceAll('"', '""');
+  return '"$escaped"';
 }
 
 String? validateRequired(String? value) {
