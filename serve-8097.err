@@ -1,0 +1,53 @@
+127.0.0.1 - - [25/Jun/2026 20:04:34] "GET /plugselo-release.apk HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56241)
+Traceback (most recent call last):
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 1311, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 672, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 766, in __init__
+    self.handle()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 679, in do_GET
+    self.copyfile(f, self.wfile)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 878, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 204, in copyfileobj
+    fdst_write(buf)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 845, in write
+    self._sock.sendall(b)
+ConnectionResetError: [WinError 10054] Foi forçado o cancelamento de uma conexão existente pelo host remoto
+----------------------------------------
+127.0.0.1 - - [25/Jun/2026 20:05:06] "GET /plugselo-release.apk HTTP/1.1" 200 -
+127.0.0.1 - - [25/Jun/2026 20:05:06] "GET /plugselo-release.apk HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 49181)
+Traceback (most recent call last):
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 1311, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 672, in __init__
+    super().__init__(*args, **kwargs)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 766, in __init__
+    self.handle()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 436, in handle
+    self.handle_one_request()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 424, in handle_one_request
+    method()
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 679, in do_GET
+    self.copyfile(f, self.wfile)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\http\server.py", line 878, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 204, in copyfileobj
+    fdst_write(buf)
+  File "C:\Users\Marce\AppData\Local\Programs\Python\Python312\Lib\socketserver.py", line 845, in write
+    self._sock.sendall(b)
+ConnectionResetError: [WinError 10054] Foi forçado o cancelamento de uma conexão existente pelo host remoto
+----------------------------------------

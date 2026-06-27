@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="BIPSTOCK">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="BIPSTOCK">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>BIPSTOCK</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #0d0d1a;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+    }
+
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at top, rgba(57, 255, 20, 0.12), transparent 28%),
+        #0d0d1a;
+      z-index: 9999;
+    }
+
+    #boot-card {
+      width: min(92vw, 420px);
+      border: 1px solid rgba(57, 255, 20, 0.3);
+      border-radius: 24px;
+      background: rgba(21, 24, 38, 0.96);
+      padding: 24px;
+      box-sizing: border-box;
+      box-shadow: 0 0 24px rgba(57, 255, 20, 0.12);
+    }
+
+    #boot-title {
+      margin: 0 0 12px;
+      color: #39ff14;
+      font-size: 20px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+    }
+
+    #boot-message {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .boot-error #boot-title {
+      color: #ff8f8f;
+    }
+  </style>
+  <script>
+    window.__bipstockBoot = {
+      setMessage(message, isError) {
+        const root = document.getElementById('boot-screen');
+        const text = document.getElementById('boot-message');
+        if (!root || !text) return;
+        root.classList.toggle('boot-error', Boolean(isError));
+        text.textContent = message;
+      },
+      complete() {
+        const root = document.getElementById('boot-screen');
+        if (root) root.remove();
+      },
+    };
+
+    window.addEventListener('error', function (event) {
+      window.__bipstockBoot.setMessage(
+        'Falha no bootstrap web:\\n' + (event.message || 'Erro desconhecido'),
+        true,
+      );
+    });
+
+    window.addEventListener('unhandledrejection', function (event) {
+      const reason = event.reason && (event.reason.stack || event.reason.message || event.reason);
+      window.__bipstockBoot.setMessage(
+        'Promise rejeitada durante a inicializacao:\\n' + reason,
+        true,
+      );
+    });
+  </script>
+</head>
+<body>
+  <div id="boot-screen">
+    <div id="boot-card">
+      <h1 id="boot-title">BIPSTOCK</h1>
+      <p id="boot-message">Inicializando a aplicacao...</p>
+    </div>
+  </div>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
+

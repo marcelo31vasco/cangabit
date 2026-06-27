@@ -1,0 +1,47 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/.agents"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/.dart_tool"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/.lovable"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/android"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/build"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/ios"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/lib"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/linux"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/macos"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/supabase"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/test"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/web"
+		},
+		{
+			"path": "M:/Downloads/plug-my-stamps-main/plug-my-stamps-main/windows"
+		}
+	],
+	"settings": {}
+}
