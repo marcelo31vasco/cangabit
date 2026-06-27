@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_saver/file_saver.dart';
+import 'package:csv/csv.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:toastification/toastification.dart';
 
 const Color corPrimariaNordestao = Color(0xFFF33F2B);
 const Color corSecundariaNordestao = Color(0xFF3A57A6);
@@ -16,6 +22,9 @@ const Color corRiscoCritico = Color(0xFFD92D20);
 const Color corRiscoAlerta = Color(0xFFF79009);
 const Color corRiscoSeguro = Color(0xFF12B76A);
 const Color corRiscoVencido = Color(0xFF7A271A);
+const String kGlobalStoreId = 'GLOBAL';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,60 +54,69 @@ class _BipStockAppState extends State<BipStockApp> {
   final AppController _controller = AppController.seeded();
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'BIPSTOCK',
-          theme: ThemeData(
-            useMaterial3: true,
-            scaffoldBackgroundColor: corFundoAplicacao,
-            colorScheme: const ColorScheme.light(
-              primary: corPrimariaNordestao,
-              secondary: corSecundariaNordestao,
-              surface: corSuperficie,
-              onPrimary: Colors.white,
-              onSecondary: Colors.white,
-              onSurface: corTextoPrincipal,
-            ),
-            textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: corTextoPrincipal,
-              displayColor: corTextoPrincipal,
-            ),
-            cardTheme: CardThemeData(
-              color: corSuperficie,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: const BorderSide(color: corBordaSuave),
+        return ToastificationWrapper(
+          child: MaterialApp(
+            navigatorKey: appNavigatorKey,
+            debugShowCheckedModeBanner: false,
+            title: 'BIPSTOCK',
+            theme: ThemeData(
+              useMaterial3: true,
+              scaffoldBackgroundColor: corFundoAplicacao,
+              colorScheme: const ColorScheme.light(
+                primary: corPrimariaNordestao,
+                secondary: corSecundariaNordestao,
+                surface: corSuperficie,
+                onPrimary: Colors.white,
+                onSecondary: Colors.white,
+                onSurface: corTextoPrincipal,
+              ),
+              textTheme: ThemeData.light().textTheme.apply(
+                bodyColor: corTextoPrincipal,
+                displayColor: corTextoPrincipal,
+              ),
+              cardTheme: CardThemeData(
+                color: corSuperficie,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: const BorderSide(color: corBordaSuave),
+                ),
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: corSecundariaNordestao,
+                foregroundColor: Colors.white,
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: corSuperficie,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: corBordaSuave),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: corBordaSuave),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: corPrimariaNordestao),
+                ),
+                labelStyle: const TextStyle(color: corTextoSecundario),
               ),
             ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: corSecundariaNordestao,
-              foregroundColor: Colors.white,
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: corSuperficie,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: corBordaSuave),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: corBordaSuave),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: corPrimariaNordestao),
-              ),
-              labelStyle: const TextStyle(color: corTextoSecundario),
-            ),
+            home: _controller.session == null
+                ? LoginScreen(controller: _controller)
+                : HomeShell(controller: _controller),
           ),
-          home: _controller.session == null
-              ? LoginScreen(controller: _controller)
-              : HomeShell(controller: _controller),
         );
       },
     );
@@ -553,22 +571,55 @@ class _SessionMenu extends StatelessWidget {
   }
 }
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key, required this.controller});
 
   final AppController controller;
 
   @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  String? _selectedProductId;
+
+  @override
   Widget build(BuildContext context) {
-    final dashboard = controller.dashboard;
-    final recommendations = controller.recommendations;
-    final queue = controller.fefoQueue.take(6).toList();
+    final controller = widget.controller;
+    final dashboard = controller.dashboardForProduct(_selectedProductId);
+    final recommendations = controller.recommendationsForProduct(_selectedProductId);
+    final queue = controller.fefoQueueForProduct(_selectedProductId).take(6).toList();
+    final products = controller.filteredProducts;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(
+            width: 360,
+            child: DropdownButtonFormField<String?>(
+              value: _selectedProductId,
+              decoration: const InputDecoration(
+                labelText: 'Filtrar produto no dashboard',
+                prefixIcon: Icon(Icons.filter_alt_outlined),
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Visao geral da unidade'),
+                ),
+                ...products.map(
+                  (product) => DropdownMenuItem<String?>(
+                    value: product.id,
+                    child: Text(product.description),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => _selectedProductId = value),
+            ),
+          ),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -588,11 +639,11 @@ class DashboardPage extends StatelessWidget {
               if (compact) {
                 return Column(
                   children: [
-                    RecommendationPanel(controller: controller, recommendations: recommendations),
-                    const SizedBox(height: 16),
-                    FefoQueueCard(queue: queue),
-                  ],
-                );
+                     RecommendationPanel(controller: controller, recommendations: recommendations),
+                     const SizedBox(height: 16),
+                     FefoQueueCard(queue: queue),
+                   ],
+                 );
               }
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -838,6 +889,8 @@ class _OperationsPageState extends State<OperationsPage> {
   final _saleEanController = TextEditingController();
   final _saleQtyController = TextEditingController(text: '1');
   String? _selectedCategory;
+  List<MockInvoiceBatch> _pendingInvoiceItems = [];
+  final Map<String, TextEditingController> _invoiceExpiryControllers = {};
 
   @override
   void initState() {
@@ -860,12 +913,15 @@ class _OperationsPageState extends State<OperationsPage> {
     _expiryController.dispose();
     _saleEanController.dispose();
     _saleQtyController.dispose();
+    for (final controller in _invoiceExpiryControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _scanEan() async {
     final value = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeCaptureScreen()),
+      MaterialPageRoute(builder: (_) => const BarcodeCaptureScreen(target: ScanTarget.ean13)),
     );
     if (value != null) {
       setState(() => _eanController.text = value);
@@ -944,6 +1000,49 @@ class _OperationsPageState extends State<OperationsPage> {
     setState(() {});
   }
 
+  Future<void> _scanInvoiceDanfe() async {
+    final invoiceKey = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeCaptureScreen(target: ScanTarget.nfe44)),
+    );
+    if (invoiceKey == null) {
+      return;
+    }
+    final items = await widget.controller.fetchMockInvoice(invoiceKey);
+    for (final controller in _invoiceExpiryControllers.values) {
+      controller.dispose();
+    }
+    _invoiceExpiryControllers.clear();
+    for (final item in items) {
+      final profile = widget.controller.categoryProfileForName(item.product.category);
+      _invoiceExpiryControllers[item.batchCode] = TextEditingController(
+        text: suggestedExpiryFor(profile?.shelfLifeDays ?? 7),
+      );
+    }
+    setState(() => _pendingInvoiceItems = items);
+    if (mounted) {
+      showSnack(context, 'Nota fiscal mock consultada. Informe a validade dos lotes.');
+    }
+  }
+
+  void _saveInvoiceBatches() {
+    for (final item in _pendingInvoiceItems) {
+      final controller = _invoiceExpiryControllers[item.batchCode]!;
+      final expiry = DateTime.tryParse(controller.text.trim());
+      if (expiry == null) {
+        showSnack(context, 'Preencha todas as validades da nota no formato AAAA-MM-DD.');
+        return;
+      }
+      item.expiresAt = expiry;
+    }
+    widget.controller.registerInvoiceBatches(_pendingInvoiceItems);
+    for (final controller in _invoiceExpiryControllers.values) {
+      controller.dispose();
+    }
+    _invoiceExpiryControllers.clear();
+    setState(() => _pendingInvoiceItems = []);
+    showSnack(context, 'Lotes da nota fiscal salvos com sucesso.');
+  }
+
   @override
   Widget build(BuildContext context) {
     final recentBatches = widget.controller.recentBatches.take(5).toList();
@@ -973,12 +1072,13 @@ class _OperationsPageState extends State<OperationsPage> {
                  onCategoryChanged: _applyCategoryProfile,
                  onEanEditingComplete: _syncCatalogProduct,
                 );
-              final actions = _OperationsActionsCard(
-                controller: widget.controller,
-                saleEanController: _saleEanController,
-                saleQtyController: _saleQtyController,
-                simulateSale: _simulateSale,
-              );
+               final actions = _OperationsActionsCard(
+                 controller: widget.controller,
+                 saleEanController: _saleEanController,
+                 saleQtyController: _saleQtyController,
+                 simulateSale: _simulateSale,
+                 scanInvoiceDanfe: _scanInvoiceDanfe,
+               );
 
               if (compact) {
                 return Column(
@@ -999,6 +1099,62 @@ class _OperationsPageState extends State<OperationsPage> {
               );
             },
           ),
+          if (_pendingInvoiceItems.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Entrada por nota fiscal (mock SEFAZ)',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Confira os itens retornados e informe manualmente a validade de cada produto.',
+                      style: TextStyle(color: corTextoSecundario),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._pendingInvoiceItems.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width: 340,
+                              child: Text(
+                                '${item.product.description} • ${item.quantity} un • ${item.product.ean13}',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 220,
+                              child: TextField(
+                                controller: _invoiceExpiryControllers[item.batchCode],
+                                decoration: const InputDecoration(
+                                  labelText: 'Validade (AAAA-MM-DD)',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: _saveInvoiceBatches,
+                      style: primaryButton(),
+                      icon: const Icon(Icons.save_outlined),
+                      label: const Text('Salvar lotes'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Card(
             child: Padding(
@@ -1552,12 +1708,14 @@ class _OperationsActionsCard extends StatelessWidget {
     required this.saleEanController,
     required this.saleQtyController,
     required this.simulateSale,
+    required this.scanInvoiceDanfe,
   });
 
   final AppController controller;
   final TextEditingController saleEanController;
   final TextEditingController saleQtyController;
   final VoidCallback simulateSale;
+  final Future<void> Function() scanInvoiceDanfe;
 
   @override
   Widget build(BuildContext context) {
@@ -1590,6 +1748,13 @@ class _OperationsActionsCard extends StatelessWidget {
               style: outlinedButton(),
               icon: const Icon(Icons.cloud_sync),
               label: const Text('Importar API'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: scanInvoiceDanfe,
+              style: outlinedButton(),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('Escanear Nota Fiscal (Danfe)'),
             ),
             const Divider(color: corBordaSuave, height: 28),
             const Text(
@@ -1774,7 +1939,7 @@ class ReportsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final report = controller.report;
     final audits = controller.auditTrail.take(12).toList();
-    final csv = controller.generateDailyReportCsv();
+    final csvRows = controller.generateDailyReportRows();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -1800,20 +1965,17 @@ class ReportsPage extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: csv));
+                final csv = const ListToCsvConverter().convert(csvRows);
+                final bytes = Uint8List.fromList(utf8.encode(csv));
+                await FileSaver.instance.saveFile(
+                  name: 'relatorio_bipstock_${DateTime.now().toIso8601String().split('T').first}',
+                  bytes: bytes,
+                  fileExtension: 'csv',
+                  mimeType: MimeType.custom,
+                  customMimeType: 'text/csv',
+                );
                 if (context.mounted) {
-                  showDialog<void>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('CSV diario copiado'),
-                      content: SizedBox(
-                        width: 640,
-                        child: SingleChildScrollView(
-                          child: SelectableText(csv),
-                        ),
-                      ),
-                    ),
-                  );
+                  showSnack(context, 'Relatorio CSV exportado com sucesso.');
                 }
               },
               style: outlinedButton(),
@@ -2041,8 +2203,12 @@ class StatusChip extends StatelessWidget {
   }
 }
 
+enum ScanTarget { ean13, nfe44 }
+
 class BarcodeCaptureScreen extends StatefulWidget {
-  const BarcodeCaptureScreen({super.key});
+  const BarcodeCaptureScreen({super.key, required this.target});
+
+  final ScanTarget target;
 
   @override
   State<BarcodeCaptureScreen> createState() => _BarcodeCaptureScreenState();
@@ -2050,13 +2216,22 @@ class BarcodeCaptureScreen extends StatefulWidget {
 
 class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
   final _manualController = TextEditingController();
-  final MobileScannerController _scannerController = MobileScannerController(
-    facing: CameraFacing.back,
-    detectionSpeed: DetectionSpeed.normal,
-    autoStart: true,
-  );
+  late final MobileScannerController _scannerController;
   bool _handled = false;
   bool _enableWebCamera = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scannerController = MobileScannerController(
+      facing: CameraFacing.back,
+      detectionSpeed: DetectionSpeed.normal,
+      autoStart: true,
+      formats: widget.target == ScanTarget.ean13
+          ? const [BarcodeFormat.ean13]
+          : const [BarcodeFormat.code128],
+    );
+  }
 
   @override
   void dispose() {
@@ -2066,6 +2241,15 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
   }
 
   void _submit(String value) {
+    if (widget.target == ScanTarget.nfe44) {
+      final nfe = extractNfeKey44(value);
+      if (nfe == null) {
+        showSnack(context, 'Chave NFe invalida. Informe 44 digitos.');
+        return;
+      }
+      Navigator.of(context).pop(nfe);
+      return;
+    }
     final ean = extractEan13(value);
     if (ean == null) {
       showSnack(context, 'Código inválido. Informe 13 dígitos.');
@@ -2098,7 +2282,9 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
               TextField(
                 controller: _manualController,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'EAN-13'),
+                decoration: InputDecoration(
+                  labelText: widget.target == ScanTarget.ean13 ? 'EAN-13' : 'Chave NFe (44 digitos)',
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -2123,6 +2309,14 @@ class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
                 return;
               }
               final value = capture.barcodes.first.rawValue ?? '';
+              if (widget.target == ScanTarget.nfe44) {
+                final nfe = extractNfeKey44(value);
+                if (nfe != null) {
+                  _handled = true;
+                  Navigator.of(context).pop(nfe);
+                }
+                return;
+              }
               final ean = extractEan13(value);
               if (ean != null) {
                 _handled = true;
@@ -2169,17 +2363,35 @@ class AppController extends ChangeNotifier {
       'AppController.seeded(): controlador criado com ${_repository.stores.length} loja(s), '
       '${_repository.users.length} usuário(s) e ${_repository.products.length} produto(s).',
     );
+    _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (session != null) {
+        refreshOperationalRules();
+      }
+    });
   }
 
   final InventoryRepository _repository;
+  late final Timer _pollingTimer;
   Session? session;
   String _search = '';
 
-  List<StoreRecord> get storeOptions => _repository.stores;
+  List<StoreRecord> get storeOptions {
+    final currentSession = session;
+    if (currentSession == null) {
+      return _repository.stores;
+    }
+    if (currentSession.user.role == UserRole.manager) {
+      return [globalStoreRecord, ..._repository.stores];
+    }
+    return _repository.stores
+        .where((store) => store.id == currentSession.user.defaultStoreId)
+        .toList();
+  }
   List<StoreRecord> get displayStores => _repository.stores.where((store) => store.kind == StoreKind.store).toList();
   StoreRecord? get distributionCenter => _repository.stores.where((store) => store.kind == StoreKind.distributionCenter).firstOrNull;
   List<CategoryProfile> get categoryProfiles => kCategoryProfiles;
-  StoreRecord get activeStore => _repository.storeById(session!.storeId);
+  StoreRecord get activeStore =>
+      session!.storeId == kGlobalStoreId ? globalStoreRecord : _repository.storeById(session!.storeId);
   DashboardSnapshot get dashboard => _repository.dashboardFor(session!.storeId);
   List<RecommendationItem> get recommendations =>
       _repository.recommendationsFor(session!.storeId);
@@ -2190,12 +2402,18 @@ class AppController extends ChangeNotifier {
   List<StockBatch> get recentBatches => _repository.recentBatches(session!.storeId);
   ReportSnapshot get report => _repository.reportFor(session!.storeId);
   List<AuditRecord> get auditTrail => _repository.auditFor(session!.storeId);
-  String generateDailyReportCsv() =>
-      _repository.generateDailyReportCsv(session!.storeId);
+  List<List<dynamic>> generateDailyReportRows() =>
+      _repository.generateDailyReportRows(session!.storeId);
   ProductRecord? findProductByEan(String ean13) =>
       _repository.findProductByEan(session!.storeId, ean13);
   CategoryProfile? categoryProfileForName(String name) =>
       kCategoryProfiles.where((item) => item.name == name).firstOrNull;
+  DashboardSnapshot dashboardForProduct(String? productId) =>
+      _repository.dashboardFor(session!.storeId, productId: productId);
+  List<RecommendationItem> recommendationsForProduct(String? productId) =>
+      _repository.recommendationsFor(session!.storeId, productId: productId);
+  List<StockBatch> fefoQueueForProduct(String? productId) =>
+      _repository.fefoQueue(session!.storeId, productId: productId);
 
   bool login(String email, String password) {
     final auth = _repository.authenticate(email, password);
@@ -2203,7 +2421,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
     session = auth;
-    _repository.refreshRules(auth.storeId, auth.user.fullName);
+    _refreshRulesForCurrentSession(showNotifications: false);
     notifyListeners();
     return true;
   }
@@ -2219,7 +2437,7 @@ class AppController extends ChangeNotifier {
       return;
     }
     session = Session(user: session!.user, storeId: storeId);
-    _repository.refreshRules(storeId, session!.user.fullName);
+    _refreshRulesForCurrentSession(showNotifications: false);
     notifyListeners();
   }
 
@@ -2294,13 +2512,89 @@ class AppController extends ChangeNotifier {
   }
 
   void refreshOperationalRules() {
-    _repository.refreshRules(session!.storeId, session!.user.fullName);
+    _refreshRulesForCurrentSession(showNotifications: true);
     notifyListeners();
   }
 
   void registerCompany({required String name, required String cnpj}) {
     _repository.registerCompany(name: name, cnpj: cnpj);
     notifyListeners();
+  }
+
+  Future<List<MockInvoiceBatch>> fetchMockInvoice(String invoiceKey) {
+    return SefazApiMock().fetchInvoiceProducts(
+      invoiceKey: invoiceKey,
+      storeId: session!.storeId,
+    );
+  }
+
+  void registerInvoiceBatches(List<MockInvoiceBatch> items) {
+    final current = session!;
+    for (final item in items) {
+      _repository.registerBatch(
+        storeId: current.storeId,
+        userName: current.user.fullName,
+        ean13: item.product.ean13,
+        description: item.product.description,
+        category: item.product.category,
+        sector: item.product.sector,
+        batchCode: item.batchCode,
+        quantity: item.quantity,
+        minStock: item.product.minStock,
+        unitValue: item.product.unitValue,
+        expiresAt: item.expiresAt!,
+      );
+    }
+    notifyListeners();
+  }
+
+  void _refreshRulesForCurrentSession({required bool showNotifications}) {
+    if (session == null) {
+      return;
+    }
+    final previousIds = _repository.alerts.map((item) => item.id).toSet();
+    if (session!.storeId == kGlobalStoreId) {
+      for (final store in _repository.stores) {
+        _repository.refreshRules(store.id, session!.user.fullName);
+      }
+    } else {
+      _repository.refreshRules(session!.storeId, session!.user.fullName);
+    }
+    if (!showNotifications) {
+      return;
+    }
+    final created = _repository.alerts
+        .where((item) => !previousIds.contains(item.id))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (created.isNotEmpty) {
+      _showOperationalToast(created.first);
+    }
+  }
+
+  void _showOperationalToast(AlertRecord alert) {
+    final context = appNavigatorKey.currentContext;
+    if (context == null) {
+      return;
+    }
+    toastification.show(
+      context: context,
+      type: alert.zone == RiskZone.stockout ? ToastificationType.warning : ToastificationType.info,
+      style: ToastificationStyle.flatColored,
+      alignment: Alignment.topCenter,
+      autoCloseDuration: const Duration(seconds: 6),
+      title: Text(alert.title),
+      description: Text(alert.description),
+      icon: const Icon(Icons.notifications_active_outlined),
+      showProgressBar: true,
+      primaryColor: zoneColor(alert.zone),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer.cancel();
+    super.dispose();
   }
 }
 
@@ -2322,6 +2616,10 @@ class InventoryRepository {
   final List<AuditRecord> audits = [];
   int _sequence = 0;
 
+  bool _matchesStore(String candidateStoreId, String targetStoreId) {
+    return targetStoreId == kGlobalStoreId || candidateStoreId == targetStoreId;
+  }
+
   Session? authenticate(String email, String password) {
     final user = users.where((u) => u.email == email.trim().toLowerCase()).firstOrNull;
     if (user == null || user.password != password) {
@@ -2333,7 +2631,7 @@ class InventoryRepository {
   StoreRecord storeById(String id) => stores.firstWhere((store) => store.id == id);
   ProductRecord? findProductByEan(String storeId, String ean13) {
     return products
-        .where((item) => item.storeId == storeId && item.ean13 == ean13)
+        .where((item) => _matchesStore(item.storeId, storeId) && item.ean13 == ean13)
         .firstOrNull;
   }
 
@@ -2658,12 +2956,20 @@ class InventoryRepository {
     );
   }
 
-  DashboardSnapshot dashboardFor(String storeId) {
-    final storeProducts = products.where((item) => item.storeId == storeId).toList();
-    final storeBatches = batches.where((item) => item.storeId == storeId).toList();
-    final storeAlerts = alerts.where((item) => item.storeId == storeId && !item.acknowledged);
+  DashboardSnapshot dashboardFor(String storeId, {String? productId}) {
+    final storeProducts = products
+        .where((item) => _matchesStore(item.storeId, storeId))
+        .where((item) => productId == null || item.id == productId)
+        .toList();
+    final storeBatches = batches
+        .where((item) => _matchesStore(item.storeId, storeId))
+        .where((item) => productId == null || item.productId == productId)
+        .toList();
+    final storeAlerts = alerts
+        .where((item) => _matchesStore(item.storeId, storeId) && !item.acknowledged)
+        .where((item) => productId == null || storeBatches.any((batch) => batch.id == item.referenceId || batch.productId == item.referenceId));
     final savings = audits
-        .where((item) => item.storeId == storeId)
+        .where((item) => _matchesStore(item.storeId, storeId))
         .where((item) => item.action == AlertResolution.promotion.label)
         .fold<double>(0, (sum, item) => sum + item.financialImpact);
     final losses = storeBatches
@@ -2682,9 +2988,9 @@ class InventoryRepository {
     );
   }
 
-  List<RecommendationItem> recommendationsFor(String storeId) {
+  List<RecommendationItem> recommendationsFor(String storeId, {String? productId}) {
     final items = <RecommendationItem>[];
-    for (final batch in fefoQueue(storeId)) {
+    for (final batch in fefoQueue(storeId, productId: productId)) {
       if (batch.zone == RiskZone.safe) {
         continue;
       }
@@ -2718,7 +3024,9 @@ class InventoryRepository {
         );
       }
     }
-    for (final product in products.where((item) => item.storeId == storeId)) {
+    for (final product in products
+        .where((item) => _matchesStore(item.storeId, storeId))
+        .where((item) => productId == null || item.id == productId)) {
       final total = totalStockForProduct(storeId, product.id);
       if (total <= product.minStock) {
         items.add(
@@ -2736,7 +3044,7 @@ class InventoryRepository {
 
   List<ProductRecord> searchProducts(String storeId, String query) {
     final normalized = query.trim().toLowerCase();
-    final storeProducts = products.where((item) => item.storeId == storeId).toList();
+    final storeProducts = products.where((item) => _matchesStore(item.storeId, storeId)).toList();
     if (normalized.isEmpty) {
       return storeProducts;
     }
@@ -2754,7 +3062,7 @@ class InventoryRepository {
 
   List<StockBatch> batchesForProduct(String storeId, String productId) {
     return batches
-        .where((batch) => batch.storeId == storeId && batch.productId == productId)
+        .where((batch) => _matchesStore(batch.storeId, storeId) && batch.productId == productId)
         .toList()
       ..sort((a, b) => a.expiresAt.compareTo(b.expiresAt));
   }
@@ -2764,9 +3072,10 @@ class InventoryRepository {
         .fold<int>(0, (sum, batch) => sum + batch.quantityCurrent);
   }
 
-  List<StockBatch> fefoQueue(String storeId) {
+  List<StockBatch> fefoQueue(String storeId, {String? productId}) {
     return batches
-        .where((batch) => batch.storeId == storeId && batch.quantityCurrent > 0)
+        .where((batch) => _matchesStore(batch.storeId, storeId) && batch.quantityCurrent > 0)
+        .where((batch) => productId == null || batch.productId == productId)
         .toList()
       ..sort((a, b) {
         final expiry = a.expiresAt.compareTo(b.expiresAt);
@@ -2778,16 +3087,16 @@ class InventoryRepository {
   }
 
   List<AlertRecord> alertsFor(String storeId) {
-    return alerts.where((item) => item.storeId == storeId).toList();
+    return alerts.where((item) => _matchesStore(item.storeId, storeId)).toList();
   }
 
   List<StockBatch> recentBatches(String storeId) {
-    return batches.where((item) => item.storeId == storeId).toList()
+    return batches.where((item) => _matchesStore(item.storeId, storeId)).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   ReportSnapshot reportFor(String storeId) {
-    final storeAudits = audits.where((item) => item.storeId == storeId).toList();
+    final storeAudits = audits.where((item) => _matchesStore(item.storeId, storeId)).toList();
     final savings = storeAudits
         .where((item) => item.action == AlertResolution.promotion.label)
         .fold<double>(0, (sum, item) => sum + item.financialImpact);
@@ -2810,30 +3119,27 @@ class InventoryRepository {
   }
 
   List<AuditRecord> auditFor(String storeId) {
-    return audits.where((item) => item.storeId == storeId).toList();
+    return audits.where((item) => _matchesStore(item.storeId, storeId)).toList();
   }
 
-  String generateDailyReportCsv(String storeId) {
-    final store = storeById(storeId);
-    final storeBatches = batches.where((item) => item.storeId == storeId).toList();
-    final rows = <String>[
-      'loja,ean,produto,lote,quantidade,validade,status,valor_unitario'
+  List<List<dynamic>> generateDailyReportRows(String storeId) {
+    final storeBatches = batches.where((item) => _matchesStore(item.storeId, storeId)).toList();
+    final rows = <List<dynamic>>[
+      ['loja', 'ean', 'produto', 'lote', 'quantidade', 'validade', 'status', 'valor_unitario']
     ];
     for (final batch in storeBatches) {
-      rows.add(
-        [
-          csvEscape(store.name),
-          csvEscape(batch.ean13),
-          csvEscape(batch.productDescription),
-          csvEscape(batch.batchCode),
-          batch.quantityCurrent.toString(),
-          shortDate(batch.expiresAt),
-          batch.zone.label,
-          batch.unitValue.toStringAsFixed(2),
-        ].join(','),
-      );
+      rows.add([
+        batch.storeName,
+        batch.ean13,
+        batch.productDescription,
+        batch.batchCode,
+        batch.quantityCurrent,
+        shortDate(batch.expiresAt),
+        batch.zone.label,
+        batch.unitValue.toStringAsFixed(2),
+      ]);
     }
-    return rows.join('\n');
+    return rows;
   }
 
   void _seed() {
@@ -2985,6 +3291,15 @@ class Session {
   final String storeId;
 }
 
+const StoreRecord globalStoreRecord = StoreRecord(
+  id: kGlobalStoreId,
+  name: 'Todas as Unidades (Visao Global)',
+  code: 'GLOBAL',
+  cnpj: '-',
+  kind: StoreKind.store,
+  regionLabel: 'Consolidado',
+);
+
 class StoreRecord {
   const StoreRecord({
     required this.id,
@@ -3067,6 +3382,74 @@ class ProductRecord {
       minStock: minStock ?? this.minStock,
       unitValue: unitValue ?? this.unitValue,
     );
+  }
+}
+
+class MockInvoiceBatch {
+  MockInvoiceBatch({
+    required this.product,
+    required this.quantity,
+    required this.batchCode,
+    this.expiresAt,
+  });
+
+  final ProductRecord product;
+  final int quantity;
+  final String batchCode;
+  DateTime? expiresAt;
+}
+
+class SefazApiMock {
+  Future<List<MockInvoiceBatch>> fetchInvoiceProducts({
+    required String invoiceKey,
+    required String storeId,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    final suffix = invoiceKey.substring(invoiceKey.length - 4);
+    return [
+      MockInvoiceBatch(
+        product: ProductRecord(
+          id: 'nfe-1-$suffix',
+          storeId: storeId,
+          ean13: '7891000001911',
+          description: 'Leite Integral 1L',
+          category: 'Laticinios',
+          sector: 'Frios',
+          minStock: 12,
+          unitValue: 5.89,
+        ),
+        quantity: 24,
+        batchCode: 'NFE-$suffix-01',
+      ),
+      MockInvoiceBatch(
+        product: ProductRecord(
+          id: 'nfe-2-$suffix',
+          storeId: storeId,
+          ean13: '7891000001928',
+          description: 'Presunto Cozido 200g',
+          category: 'Frios',
+          sector: 'Frios',
+          minStock: 8,
+          unitValue: 8.49,
+        ),
+        quantity: 18,
+        batchCode: 'NFE-$suffix-02',
+      ),
+      MockInvoiceBatch(
+        product: ProductRecord(
+          id: 'nfe-3-$suffix',
+          storeId: storeId,
+          ean13: '7891000001935',
+          description: 'Mamao Formosa',
+          category: 'Hortifruti',
+          sector: 'FLV',
+          minStock: 10,
+          unitValue: 4.35,
+        ),
+        quantity: 30,
+        batchCode: 'NFE-$suffix-03',
+      ),
+    ];
   }
 }
 
@@ -3513,6 +3896,11 @@ String? validatePositiveInt(String? value) {
 
 String? extractEan13(String input) {
   final match = RegExp(r'\d{13}').firstMatch(input);
+  return match?.group(0);
+}
+
+String? extractNfeKey44(String input) {
+  final match = RegExp(r'\d{44}').firstMatch(input);
   return match?.group(0);
 }
 
