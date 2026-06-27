@@ -1,5 +1,6 @@
-﻿import 'dart:math';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -17,1531 +18,200 @@ const Color corRiscoSeguro = Color(0xFF12B76A);
 const Color corRiscoVencido = Color(0xFF7A271A);
 
 void main() {
-  runApp(const AplicativoBipstock());
+  WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError capturado no bootstrap: ${details.exceptionAsString()}');
+    debugPrintStack(stackTrace: details.stack);
+  };
+
+  try {
+    debugPrint('main(): iniciando runApp(BipStockApp)');
+    runApp(const BipStockApp());
+  } catch (error, stackTrace) {
+    debugPrint('main(): erro ao subir o app: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
 
-class AplicativoBipstock extends StatelessWidget {
-  const AplicativoBipstock({super.key});
+class BipStockApp extends StatefulWidget {
+  const BipStockApp({super.key});
 
-  ContaUsuario _usuarioInicial() {
-    return ArmazenamentoAutenticacao.instancia.usuarioGestorPadrao;
-  }
+  @override
+  State<BipStockApp> createState() => _BipStockAppState();
+}
+
+class _BipStockAppState extends State<BipStockApp> {
+  final AppController _controller = AppController.seeded();
 
   @override
   Widget build(BuildContext context) {
-    final usuarioInicial = _usuarioInicial();
-    return MaterialApp(
-      title: 'BIPSTOCK',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: corFundoAplicacao,
-        colorScheme: const ColorScheme.light(
-          primary: corPrimariaNordestao,
-          secondary: corSecundariaNordestao,
-          surface: corSuperficie,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: corTextoPrincipal,
-        ),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: corSecundariaNordestao,
-          contentTextStyle: TextStyle(color: Colors.white),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: corSecundariaNordestao,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: corSuperficie,
-          labelStyle: const TextStyle(color: corTextoSecundario),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: corBordaSuave),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: corBordaSuave),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: corPrimariaNordestao, width: 1.5),
-          ),
-        ),
-      ),
-      home: TelaPrincipal(contaUsuario: usuarioInicial),
-    );
-  }
-}
-
-class TelaDeAcessoRapido extends StatelessWidget {
-  const TelaDeAcessoRapido({super.key});
-
-  void _acessar(BuildContext context, ContaUsuario contaUsuario) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => TelaDeLojas(contaUsuario: contaUsuario)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = ArmazenamentoAutenticacao.instancia;
-    final gestor = auth.fazerLogin('chagas@plugselo.com', '1234');
-    final repositor = auth.fazerLogin('fernando@plugselo.com', '4321');
-
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CabecalhoBipstock(
-                titulo: 'Escolha seu acesso',
-                subtitulo:
-                    'Entramos direto na operacao. Selecione a persona para abrir o app sem tela inicial, login ou cadastro.',
-              ),
-              const SizedBox(height: 24),
-              _CardDeAcessoPersona(
-                titulo: 'Chagas',
-                subtitulo: 'Gestor • senha 1234',
-                descricao:
-                    'Acesso gerencial completo para dashboard, recomendacoes, cadastro e visualizacoes gerais.',
-                icone: Icons.bar_chart_rounded,
-                onTap: gestor == null ? null : () => _acessar(context, gestor),
-              ),
-              const SizedBox(height: 14),
-              _CardDeAcessoPersona(
-                titulo: 'Fernando',
-                subtitulo: 'Repositor • senha 4321',
-                descricao:
-                    'Acesso focado em operacao de loja, leitura de produtos e reposicao de estoque.',
-                icone: Icons.inventory_2_outlined,
-                onTap: repositor == null ? null : () => _acessar(context, repositor),
-              ),
-              const Spacer(),
-              const RodapeCangaBit(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardDeAcessoPersona extends StatelessWidget {
-  const _CardDeAcessoPersona({
-    required this.titulo,
-    required this.subtitulo,
-    required this.descricao,
-    required this.icone,
-    required this.onTap,
-  });
-
-  final String titulo;
-  final String subtitulo;
-  final String descricao;
-  final IconData icone;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Ink(
-        padding: const EdgeInsets.all(20),
-        decoration: caixaPadrao(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEFEA),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icone, color: corPrimariaNordestao),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'BIPSTOCK',
+          theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor: corFundoAplicacao,
+            colorScheme: const ColorScheme.light(
+              primary: corPrimariaNordestao,
+              secondary: corSecundariaNordestao,
+              surface: corSuperficie,
+              onPrimary: Colors.white,
+              onSecondary: Colors.white,
+              onSurface: corTextoPrincipal,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    titulo,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: corTextoPrincipal,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitulo,
-                    style: const TextStyle(
-                      color: corPrimariaNordestao,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    descricao,
-                    style: const TextStyle(
-                      color: corTextoSecundario,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+            textTheme: ThemeData.light().textTheme.apply(
+              bodyColor: corTextoPrincipal,
+              displayColor: corTextoPrincipal,
+            ),
+            cardTheme: CardThemeData(
+              color: corSuperficie,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: const BorderSide(color: corBordaSuave),
               ),
             ),
-            const SizedBox(width: 12),
-            const Icon(Icons.arrow_forward_rounded, color: corSecundariaNordestao),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class TelaDeCadastro extends StatefulWidget {
-  const TelaDeCadastro({super.key});
-
-  @override
-  State<TelaDeCadastro> createState() => _TelaDeCadastroState();
-}
-
-class _TelaDeCadastroState extends State<TelaDeCadastro> {
-  final _chaveFormulario = GlobalKey<FormState>();
-  final _controladorNome = TextEditingController();
-  final _controladorEmail = TextEditingController();
-  final _controladorTelefone = TextEditingController();
-  final _controladorCpf = TextEditingController();
-  final _controladorSenha = TextEditingController();
-  TipoPerfilUsuario _perfilSelecionado = TipoPerfilUsuario.repositor;
-
-  @override
-  void dispose() {
-    _controladorNome.dispose();
-    _controladorEmail.dispose();
-    _controladorTelefone.dispose();
-    _controladorCpf.dispose();
-    _controladorSenha.dispose();
-    super.dispose();
-  }
-
-  void _avancar() {
-    if (!_chaveFormulario.currentState!.validate()) {
-      return;
-    }
-
-    final resultado = ArmazenamentoAutenticacao.instancia.cadastrarConta(
-      nomeCompleto: _controladorNome.text.trim(),
-      email: _controladorEmail.text.trim(),
-      telefone: _controladorTelefone.text.trim(),
-      cpf: _controladorCpf.text.trim(),
-      senha: _controladorSenha.text,
-      perfil: _perfilSelecionado,
-    );
-
-    if (resultado.mensagemErro != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(resultado.mensagemErro!)));
-      return;
-    }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => TelaDeLojas(contaUsuario: resultado.contaUsuario!),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 80,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: corSecundariaNordestao,
+              foregroundColor: Colors.white,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CabecalhoBipstock(
-                  titulo: 'Cadastro',
-                  subtitulo:
-                      'Crie sua conta para operar captura, estoque e alertas de validade.',
-                ),
-                const SizedBox(height: 28),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: caixaPadrao(),
-                  child: Form(
-                    key: _chaveFormulario,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _controladorNome,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Nome completo',
-                          ),
-                          validator: _validarCampoObrigatorio,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _controladorEmail,
-                          textInputAction: TextInputAction.next,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(labelText: 'E-mail'),
-                          validator: _validarEmail,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _controladorTelefone,
-                          textInputAction: TextInputAction.next,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: 'Telefone',
-                          ),
-                          validator: _validarCampoObrigatorio,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _controladorCpf,
-                          textInputAction: TextInputAction.next,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'CPF'),
-                          validator: _validarCampoObrigatorio,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _controladorSenha,
-                          obscureText: true,
-                          textInputAction: TextInputAction.done,
-                          decoration: const InputDecoration(
-                            labelText: 'Defina sua senha',
-                          ),
-                          validator: _validarSenha,
-                          onFieldSubmitted: (_) => _avancar(),
-                        ),
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Nivel de permissao',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        SegmentedButton<TipoPerfilUsuario>(
-                          segments: const [
-                            ButtonSegment(
-                              value: TipoPerfilUsuario.repositor,
-                              label: Text('Repositor'),
-                              icon: Icon(Icons.inventory_2_outlined),
-                            ),
-                            ButtonSegment(
-                              value: TipoPerfilUsuario.gestor,
-                              label: Text('Gestor'),
-                              icon: Icon(Icons.bar_chart_rounded),
-                            ),
-                          ],
-                          selected: {_perfilSelecionado},
-                          onSelectionChanged: (novoValor) {
-                            setState(() => _perfilSelecionado = novoValor.first);
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: _avancar,
-                          style: botaoPrimario(),
-                          child: const Text(
-                            'Continuar',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const TelaDeLogin(),
-                              ),
-                            );
-                          },
-                          child: const Text('Ja tenho cadastro'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const RodapeCangaBit(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String? _validarCampoObrigatorio(String? valor) {
-    if (valor == null || valor.trim().isEmpty) {
-      return 'Campo obrigatorio';
-    }
-    return null;
-  }
-
-  String? _validarEmail(String? valor) {
-    final texto = valor?.trim() ?? '';
-    if (texto.isEmpty) {
-      return 'Campo obrigatorio';
-    }
-    if (!texto.contains('@')) {
-      return 'Informe um e-mail valido';
-    }
-    return null;
-  }
-
-  String? _validarSenha(String? valor) {
-    if (valor == null || valor.isEmpty) {
-      return 'Campo obrigatorio';
-    }
-    if (valor.length < 4) {
-      return 'A senha deve ter pelo menos 4 caracteres';
-    }
-    return null;
-  }
-}
-
-class TelaDeLogin extends StatefulWidget {
-  const TelaDeLogin({super.key});
-
-  @override
-  State<TelaDeLogin> createState() => _TelaDeLoginState();
-}
-
-class _TelaDeLoginState extends State<TelaDeLogin> {
-  final _chaveFormulario = GlobalKey<FormState>();
-  final _controladorEmail = TextEditingController();
-  final _controladorSenha = TextEditingController();
-
-  @override
-  void dispose() {
-    _controladorEmail.dispose();
-    _controladorSenha.dispose();
-    super.dispose();
-  }
-
-  void _entrar() {
-    if (!_chaveFormulario.currentState!.validate()) {
-      return;
-    }
-
-    final contaUsuario = ArmazenamentoAutenticacao.instancia.fazerLogin(
-      _controladorEmail.text.trim(),
-      _controladorSenha.text,
-    );
-
-    if (contaUsuario == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('E-mail ou senha invalidos.')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => _resolverDestino(contaUsuario)),
-    );
-  }
-
-  Widget _resolverDestino(ContaUsuario contaUsuario) {
-    if (contaUsuario.lojaSelecionada == null) {
-      return TelaDeLojas(contaUsuario: contaUsuario);
-    }
-    return TelaPrincipal(contaUsuario: contaUsuario);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CabecalhoBipstock(
-                titulo: 'Login',
-                subtitulo:
-                    'Acesse sua conta com e-mail e senha para acompanhar lotes, alertas e operacao FEFO.',
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: corSuperficie,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: corBordaSuave),
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: caixaPadrao(),
-                child: Form(
-                  key: _chaveFormulario,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _controladorEmail,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(labelText: 'E-mail'),
-                        validator: (valor) {
-                          if (valor == null || valor.trim().isEmpty) {
-                            return 'Campo obrigatorio';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _controladorSenha,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(labelText: 'Senha'),
-                        validator: (valor) {
-                          if (valor == null || valor.isEmpty) {
-                            return 'Campo obrigatorio';
-                          }
-                          return null;
-                        },
-                        onFieldSubmitted: (_) => _entrar(),
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: _entrar,
-                        style: botaoPrimario(),
-                        child: const Text(
-                          'Entrar',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const TelaRecuperacaoDeSenha(),
-                            ),
-                          );
-                        },
-                        child: const Text('Esqueceu senha?'),
-                      ),
-                    ],
-                  ),
-                ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: corBordaSuave),
               ),
-              const SizedBox(height: 18),
-              const RodapeCangaBit(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TelaRecuperacaoDeSenha extends StatefulWidget {
-  const TelaRecuperacaoDeSenha({super.key});
-
-  @override
-  State<TelaRecuperacaoDeSenha> createState() => _TelaRecuperacaoDeSenhaState();
-}
-
-class _TelaRecuperacaoDeSenhaState extends State<TelaRecuperacaoDeSenha> {
-  final _controladorEmail = TextEditingController();
-  final _controladorCodigo = TextEditingController();
-  final _controladorNovaSenha = TextEditingController();
-
-  bool _codigoEnviado = false;
-  String? _emailDestino;
-
-  @override
-  void dispose() {
-    _controladorEmail.dispose();
-    _controladorCodigo.dispose();
-    _controladorNovaSenha.dispose();
-    super.dispose();
-  }
-
-  void _enviarCodigo() {
-    final email = _controladorEmail.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe um e-mail valido.')),
-      );
-      return;
-    }
-
-    final codigo = ArmazenamentoAutenticacao.instancia.gerarCodigoRecuperacao(
-      email,
-    );
-    if (codigo == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nenhum cadastro encontrado para este e-mail.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _codigoEnviado = true;
-      _emailDestino = email;
-    });
-
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: corSuperficie,
-          title: const Text('Codigo gerado no MVP'),
-          content: Text(
-            'No MVP local nao existe envio real de e-mail.\n\nCodigo para $email:\n$codigo',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Fechar'),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: corPrimariaNordestao),
+              ),
+              labelStyle: const TextStyle(color: corTextoSecundario),
             ),
-          ],
+          ),
+          home: _controller.session == null
+              ? LoginScreen(controller: _controller)
+              : HomeShell(controller: _controller),
         );
       },
     );
   }
-
-  void _trocarSenha() {
-    final email = _emailDestino ?? _controladorEmail.text.trim();
-    final codigo = _controladorCodigo.text.trim();
-    final novaSenha = _controladorNovaSenha.text;
-
-    if (codigo.isEmpty || novaSenha.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Informe o codigo e uma nova senha valida.'),
-        ),
-      );
-      return;
-    }
-
-    final sucesso = ArmazenamentoAutenticacao.instancia.redefinirSenha(
-      email: email,
-      codigo: codigo,
-      novaSenha: novaSenha,
-    );
-
-    if (!sucesso) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Codigo invalido ou expirado.')),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Senha alterada com sucesso.')),
-    );
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CabecalhoBipstock(
-                titulo: 'Recuperar senha',
-                subtitulo:
-                    'Solicite um codigo pelo e-mail e defina uma nova senha.',
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: caixaPadrao(),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _controladorEmail,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail cadastrado',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton.tonal(
-                      onPressed: _enviarCodigo,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        backgroundColor: const Color(0xFFFDE6E2),
-                        foregroundColor: corPrimariaNordestao,
-                      ),
-                      child: const Text('Enviar codigo'),
-                    ),
-                    if (_codigoEnviado) ...[
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: _controladorCodigo,
-                        decoration: const InputDecoration(
-                          labelText: 'Codigo recebido',
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _controladorNovaSenha,
-                        obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Nova senha'),
-                      ),
-                      const SizedBox(height: 18),
-                      FilledButton(
-                        onPressed: _trocarSenha,
-                        style: botaoPrimario(),
-                        child: const Text(
-                          'Trocar senha',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              const RodapeCangaBit(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-class TelaDeLojas extends StatefulWidget {
-  const TelaDeLojas({super.key, required this.contaUsuario});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key, required this.controller});
 
-  final ContaUsuario contaUsuario;
+  final AppController controller;
 
   @override
-  State<TelaDeLojas> createState() => _TelaDeLojasState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _TelaDeLojasState extends State<TelaDeLojas> {
-  static const List<String> lojas = [
-    'Nordestao Salgado Filho',
-    'Nordestao Tirol',
-    'Nordestao Cidade Jardim',
-    'Nordestao Igapo',
-    'Nordestao Nova Parnamirim',
-  ];
-
-  String? lojaSelecionada;
-
-  @override
-  void initState() {
-    super.initState();
-    lojaSelecionada = widget.contaUsuario.lojaSelecionada;
-  }
-
-  void _acessarOperacao() {
-    if (lojaSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione uma loja para continuar.')),
-      );
-      return;
-    }
-
-    widget.contaUsuario.lojaSelecionada = lojaSelecionada;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => TelaPrincipal(contaUsuario: widget.contaUsuario),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CabecalhoBipstock(
-                titulo: 'Qual filial voce vai operar?',
-                subtitulo:
-                    'Selecione a unidade vinculada aos produtos, lotes e alertas.',
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: lojas.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, indice) {
-                    final loja = lojas[indice];
-                    final selecionada = loja == lojaSelecionada;
-                    return InkWell(
-                      onTap: () {
-                        setState(() => lojaSelecionada = loja);
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selecionada
-                              ? const Color(0xFFFFEFEA)
-                              : corSuperficie,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selecionada
-                                ? corPrimariaNordestao
-                                : corBordaSuave,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              selecionada
-                                  ? Icons.radio_button_checked_rounded
-                                  : Icons.radio_button_off_rounded,
-                              color: selecionada
-                                  ? corPrimariaNordestao
-                                  : corTextoSecundario,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                loja,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _acessarOperacao,
-                style: botaoPrimario(),
-                child: const Text(
-                  'Acessar Operacao',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const RodapeCangaBit(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TelaPrincipal extends StatefulWidget {
-  const TelaPrincipal({super.key, required this.contaUsuario});
-
-  final ContaUsuario contaUsuario;
-
-  @override
-  State<TelaPrincipal> createState() => _TelaPrincipalState();
-}
-
-class _TelaPrincipalState extends State<TelaPrincipal> {
-  final CentralDeEstoque _central = CentralDeEstoque.instancia;
-  final FiltroDashboard _filtro = FiltroDashboard();
-  bool _rotinaExecutadaAoAbrir = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _filtro.filial = widget.contaUsuario.lojaSelecionada;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _executarRotinaInicial());
-  }
-
-  void _executarRotinaInicial() {
-    if (_rotinaExecutadaAoAbrir) {
-      return;
-    }
-    _rotinaExecutadaAoAbrir = true;
-    final resultado = _central.executarVarreduraDiaria(
-      filial: widget.contaUsuario.lojaSelecionada,
-      usuario: widget.contaUsuario.nomeCompleto,
-    );
-    if (resultado.novosAlertas > 0 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Rotina diaria executada: ${resultado.novosAlertas} novo(s) alerta(s) gerado(s).',
-          ),
-        ),
-      );
-      setState(() {});
-    }
-  }
-
-  Future<void> _abrirScanner() async {
-    final resultado = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const TelaDeCamera()),
-    );
-
-    if (resultado == null || !mounted) {
-      return;
-    }
-
-    await _abrirCadastroDeLote(codigoBarrasInicial: resultado);
-  }
-
-  Future<void> _abrirCadastroDeLote({String? codigoBarrasInicial}) async {
-    final alterou = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => TelaCadastroDeLote(
-          filialPadrao: widget.contaUsuario.lojaSelecionada ?? '',
-          produtoInicial: codigoBarrasInicial == null
-              ? null
-              : _central.localizarOuCriarProduto(codigoBarrasInicial),
-          codigoBarrasInicial: codigoBarrasInicial,
-        ),
-      ),
-    );
-
-    if (alterou == true && mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _abrirAjusteManual() async {
-    final alterou = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => TelaAjusteManual(
-          filtro: _filtro,
-          usuario: widget.contaUsuario,
-        ),
-      ),
-    );
-
-    if (alterou == true && mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _abrirIntegracaoDeVendas() async {
-    final alterou = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => TelaIntegracaoDeVendas(
-          filialPadrao: widget.contaUsuario.lojaSelecionada ?? '',
-        ),
-      ),
-    );
-    if (alterou == true && mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _mostrarRelatorio() async {
-    final relatorio = _central.gerarRelatorioTexto(_filtro);
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: corSuperficie,
-          title: const Text('Relatorio exportavel'),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: SelectableText(
-                relatorio,
-                style: const TextStyle(height: 1.45, color: corTextoPrincipal),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: relatorio));
-                if (!context.mounted) {
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Relatorio copiado.')),
-                );
-              },
-              child: const Text('Copiar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Fechar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _executarRotinaAgora() {
-    final resultado = _central.executarVarreduraDiaria(
-      filial: _filtro.filial,
-      usuario: widget.contaUsuario.nomeCompleto,
-    );
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Rotina concluida. ${resultado.novosAlertas} alerta(s), ${resultado.notificacoesEnviadas} notificacao(oes).',
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dashboard = _central.calcularDashboard(_filtro);
-    final fefo = _central.obterFilaFefo(_filtro);
-    final alertas = _central.obterAlertasRecentes(_filtro);
-    final acoes = _central.obterSugestoesDeAcao(_filtro);
-    final podeGerir = widget.contaUsuario.perfil == TipoPerfilUsuario.gestor;
-
-    return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final acao = await showModalBottomSheet<_AcaoRapida>(
-            context: context,
-            backgroundColor: corSuperficie,
-            builder: (context) {
-              return SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Wrap(
-                    runSpacing: 12,
-                    children: [
-                      _ItemAcaoRapida(
-                        titulo: 'Escanear EAN-13',
-                        icone: Icons.qr_code_scanner_rounded,
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pop(_AcaoRapida.escanear),
-                      ),
-                      _ItemAcaoRapida(
-                        titulo: 'Cadastrar lote manualmente',
-                        icone: Icons.playlist_add_circle_outlined,
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pop(_AcaoRapida.cadastrarLote),
-                      ),
-                      _ItemAcaoRapida(
-                        titulo: 'Simular saida via ERP/PDV',
-                        icone: Icons.sync_alt_rounded,
-                        onTap: () => Navigator.of(
-                          context,
-                        ).pop(_AcaoRapida.integracao),
-                      ),
-                      if (podeGerir)
-                        _ItemAcaoRapida(
-                          titulo: 'Ajuste manual de inventario',
-                          icone: Icons.tune_rounded,
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pop(_AcaoRapida.ajusteManual),
-                        ),
-                      if (podeGerir)
-                        _ItemAcaoRapida(
-                          titulo: 'Exportar relatorio',
-                          icone: Icons.file_download_outlined,
-                          onTap: () =>
-                              Navigator.of(context).pop(_AcaoRapida.relatorio),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-
-          switch (acao) {
-            case _AcaoRapida.escanear:
-              await _abrirScanner();
-              break;
-            case _AcaoRapida.cadastrarLote:
-              await _abrirCadastroDeLote();
-              break;
-            case _AcaoRapida.integracao:
-              await _abrirIntegracaoDeVendas();
-              break;
-            case _AcaoRapida.ajusteManual:
-              await _abrirAjusteManual();
-              break;
-            case _AcaoRapida.relatorio:
-              await _mostrarRelatorio();
-              break;
-            case null:
-              break;
-          }
-        },
-        backgroundColor: corPrimariaNordestao,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_task_rounded),
-        label: const Text('Operacoes'),
-      ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CabecalhoBipstock(
-                      titulo: 'Ola, ${widget.contaUsuario.primeiroNome}!',
-                      subtitulo:
-                          '${widget.contaUsuario.lojaSelecionada ?? 'Sem loja'} â€¢ ${widget.contaUsuario.nomeDoPerfil}',
-                    ),
-                    const SizedBox(height: 20),
-                    _CartaoResumoOperacao(
-                      dashboard: dashboard,
-                      ultimaRotina: _central.ultimaExecucaoFormatada,
-                    ),
-                    const SizedBox(height: 16),
-                    _PainelDeFiltros(
-                      filtro: _filtro,
-                      opcoesCategoria: _central.categoriasDisponiveis,
-                      opcoesSetor: _central.setoresDisponiveis,
-                      opcoesFilial: _central.filiaisDisponiveis,
-                      onChanged: () => setState(() {}),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _CardIndicador(
-                          titulo: 'Perdas evitadas',
-                          valor: formatarMoeda(dashboard.valorDePerdasEvitadas),
-                          detalhe:
-                              '${dashboard.acoesPreventivasExecutadas} acao(oes) executada(s)',
-                          destaque: corRiscoSeguro,
-                        ),
-                        _CardIndicador(
-                          titulo: 'Produtos em risco',
-                          valor: '${dashboard.lotesEmRisco}',
-                          detalhe:
-                              '${dashboard.itensCriticos} critico(s) â€¢ ${dashboard.itensEmAlerta} alerta(s)',
-                          destaque: corRiscoAlerta,
-                        ),
-                        _CardIndicador(
-                          titulo: 'Valor dos lotes criticos',
-                          valor: formatarMoeda(dashboard.valorLotesCriticos),
-                          detalhe: 'Baseado no saldo atual filtrado',
-                          destaque: corRiscoCritico,
-                        ),
-                        _CardIndicador(
-                          titulo: 'Saldo total em estoque',
-                          valor: '${dashboard.quantidadeTotalEmEstoque}',
-                          detalhe: '${dashboard.totalDeLotes} lote(s) no filtro',
-                          destaque: corSecundariaNordestao,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Fila FEFO',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: corTextoPrincipal,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _executarRotinaAgora,
-                          icon: const Icon(Icons.restart_alt_rounded),
-                          label: const Text('Rodar rotina'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    if (fefo.isEmpty)
-                      const _PainelVazio(
-                        titulo: 'Nenhum lote encontrado',
-                        subtitulo: 'Ajuste os filtros ou cadastre novos lotes.',
-                      )
-                    else
-                      ...fefo.take(6).map(
-                        (lote) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _CardLoteFefo(
-                            lote: lote,
-                            onAplicarAcao: widget.contaUsuario.perfil ==
-                                    TipoPerfilUsuario.gestor
-                                ? () {
-                                    _central.executarAcaoPreventiva(
-                                      loteId: lote.id,
-                                      usuario: widget.contaUsuario.nomeCompleto,
-                                    );
-                                    setState(() {});
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Alertas recentes',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: corTextoPrincipal,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (alertas.isEmpty)
-                      const _PainelVazio(
-                        titulo: 'Nenhum alerta recente',
-                        subtitulo: 'A rotina diaria ainda nao detectou novos riscos.',
-                      )
-                    else
-                      ...alertas.take(5).map(
-                        (alerta) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _CardAlerta(alerta: alerta),
-                        ),
-                      ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Acoes sugeridas pelo motor de regras',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: corTextoPrincipal,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (acoes.isEmpty)
-                      const _PainelVazio(
-                        titulo: 'Sem sugestoes no momento',
-                        subtitulo: 'Os lotes filtrados estao em situacao controlada.',
-                      )
-                    else
-                      ...acoes.take(5).map(
-                        (acao) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _CardAcaoPreventiva(
-                            acao: acao,
-                            podeExecutar: podeGerir,
-                            onExecutar: podeGerir
-                                ? () {
-                                    _central.executarAcaoPreventiva(
-                                      loteId: acao.lote.id,
-                                      usuario: widget.contaUsuario.nomeCompleto,
-                                    );
-                                    setState(() {});
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 18),
-                    const RodapeCangaBit(),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate((context, indice) {
-                  final lotes = fefo.take(8).toList();
-                  if (indice >= lotes.length) {
-                    return const SizedBox.shrink();
-                  }
-                  return _MiniCardLote(lote: lotes[indice]);
-                }, childCount: min(fefo.length, 8)),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.15,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class TelaCadastroDeLote extends StatefulWidget {
-  const TelaCadastroDeLote({
-    super.key,
-    required this.filialPadrao,
-    this.produtoInicial,
-    this.codigoBarrasInicial,
-  });
-
-  final String filialPadrao;
-  final ProdutoCatalogo? produtoInicial;
-  final String? codigoBarrasInicial;
-
-  @override
-  State<TelaCadastroDeLote> createState() => _TelaCadastroDeLoteState();
-}
-
-class _TelaCadastroDeLoteState extends State<TelaCadastroDeLote> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _codigoBarrasController;
-  late final TextEditingController _descricaoController;
-  late final TextEditingController _categoriaController;
-  late final TextEditingController _setorController;
-  final _loteController = TextEditingController();
-  final _quantidadeController = TextEditingController(text: '12');
-  final _valorController = TextEditingController(text: '0,00');
-  DateTime _validadeSelecionada = DateTime.now().add(const Duration(days: 7));
-  final CentralDeEstoque _central = CentralDeEstoque.instancia;
-
-  @override
-  void initState() {
-    super.initState();
-    final produto = widget.produtoInicial;
-    _codigoBarrasController = TextEditingController(
-      text: widget.codigoBarrasInicial ?? produto?.ean13 ?? '',
-    );
-    _descricaoController = TextEditingController(text: produto?.descricao ?? '');
-    _categoriaController = TextEditingController(text: produto?.categoria ?? '');
-    _setorController = TextEditingController(text: produto?.setor ?? '');
-    _valorController.text = produto == null
-        ? '0,00'
-        : produto.valorUnitario.toStringAsFixed(2).replaceAll('.', ',');
-  }
+  final _emailController = TextEditingController(text: 'gestor@bipstock.com');
+  final _passwordController = TextEditingController(text: '1234');
+  final _companyController = TextEditingController();
+  final _cnpjController = TextEditingController();
+  bool _registeringCompany = false;
 
   @override
   void dispose() {
-    _codigoBarrasController.dispose();
-    _descricaoController.dispose();
-    _categoriaController.dispose();
-    _setorController.dispose();
-    _loteController.dispose();
-    _quantidadeController.dispose();
-    _valorController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _companyController.dispose();
+    _cnpjController.dispose();
     super.dispose();
   }
 
-  void _aplicarAtalhoDeValidade(int dias) {
-    setState(() {
-      _validadeSelecionada = DateTime.now().add(Duration(days: dias));
-    });
-  }
-
-  Future<void> _escolherData() async {
-    final data = await showDatePicker(
-      context: context,
-      initialDate: _validadeSelecionada,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (data != null) {
-      setState(() => _validadeSelecionada = data);
-    }
-  }
-
-  void _salvar() {
+  void _login() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final ok = widget.controller.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (!ok && mounted) {
+      showSnack(context, 'Credenciais inválidas.');
+    }
+  }
 
-    final quantidade = int.tryParse(_quantidadeController.text.trim()) ?? 0;
-    final valor = parseMoeda(_valorController.text);
-
-    if (quantidade <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe uma quantidade valida.')),
-      );
+  void _registerCompany() {
+    if (_companyController.text.trim().isEmpty || _cnpjController.text.trim().isEmpty) {
+      showSnack(context, 'Informe nome da empresa e CNPJ.');
       return;
     }
-
-    _central.cadastrarLote(
-      ean13: _codigoBarrasController.text.trim(),
-      descricao: _descricaoController.text.trim(),
-      categoria: _categoriaController.text.trim(),
-      setor: _setorController.text.trim(),
-      codigoLote: _loteController.text.trim().isEmpty
-          ? gerarCodigoLote()
-          : _loteController.text.trim(),
-      quantidade: quantidade,
-      valorUnitario: valor,
-      validade: _validadeSelecionada,
-      filial: widget.filialPadrao,
+    widget.controller.registerCompany(
+      name: _companyController.text.trim(),
+      cnpj: _cnpjController.text.trim(),
     );
-
-    Navigator.of(context).pop(true);
+    setState(() => _registeringCompany = false);
+    showSnack(context, 'Empresa e filial principal cadastradas.');
   }
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isCompact = width < 920;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Cadastro de lote')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: caixaPadrao(),
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _codigoBarrasController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'EAN-13 do produto',
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1160),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: isCompact
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const BrandHero(),
+                        const SizedBox(height: 24),
+                        _LoginCard(
+                          formKey: _formKey,
+                          emailController: _emailController,
+                          passwordController: _passwordController,
+                          login: _login,
+                          registeringCompany: _registeringCompany,
+                          onToggleRegister: () {
+                            setState(() => _registeringCompany = !_registeringCompany);
+                          },
+                          companyController: _companyController,
+                          cnpjController: _cnpjController,
+                          registerCompany: _registerCompany,
                         ),
-                        validator: validarObrigatorio,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _descricaoController,
-                        decoration: const InputDecoration(
-                          labelText: 'Descricao do produto',
-                        ),
-                        validator: validarObrigatorio,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _categoriaController,
-                        decoration: const InputDecoration(labelText: 'Categoria'),
-                        validator: validarObrigatorio,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _setorController,
-                        decoration: const InputDecoration(labelText: 'Setor'),
-                        validator: validarObrigatorio,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _loteController,
-                        decoration: const InputDecoration(
-                          labelText: 'Codigo do lote',
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _quantidadeController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Quantidade',
-                              ),
-                              validator: validarObrigatorio,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _valorController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Valor unitario',
-                              ),
-                              validator: validarObrigatorio,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      InkWell(
-                        onTap: _escolherData,
-                        borderRadius: BorderRadius.circular(18),
-                        child: Ink(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF7F8FB),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: corBordaSuave),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.event_available_rounded),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Validade: ${formatarData(_validadeSelecionada)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right_rounded),
-                            ],
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        const Expanded(child: BrandHero()),
+                        const SizedBox(width: 24),
+                        SizedBox(
+                          width: 420,
+                          child: _LoginCard(
+                            formKey: _formKey,
+                            emailController: _emailController,
+                            passwordController: _passwordController,
+                            login: _login,
+                            registeringCompany: _registeringCompany,
+                            onToggleRegister: () {
+                              setState(() => _registeringCompany = !_registeringCompany);
+                            },
+                            companyController: _companyController,
+                            cnpjController: _cnpjController,
+                            registerCompany: _registerCompany,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          _AtalhoValidade(
-                            label: '+7 dias',
-                            onTap: () => _aplicarAtalhoDeValidade(7),
-                          ),
-                          _AtalhoValidade(
-                            label: '+15 dias',
-                            onTap: () => _aplicarAtalhoDeValidade(15),
-                          ),
-                          _AtalhoValidade(
-                            label: '+30 dias',
-                            onTap: () => _aplicarAtalhoDeValidade(30),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _salvar,
-                  style: botaoPrimario(),
-                  child: const Text('Salvar lote'),
-                ),
-              ],
+                      ],
+                    ),
             ),
           ),
         ),
@@ -1550,2166 +220,3082 @@ class _TelaCadastroDeLoteState extends State<TelaCadastroDeLote> {
   }
 }
 
-class TelaAjusteManual extends StatefulWidget {
-  const TelaAjusteManual({
-    super.key,
-    required this.filtro,
-    required this.usuario,
-  });
-
-  final FiltroDashboard filtro;
-  final ContaUsuario usuario;
-
-  @override
-  State<TelaAjusteManual> createState() => _TelaAjusteManualState();
-}
-
-class _TelaAjusteManualState extends State<TelaAjusteManual> {
-  final _motivoController = TextEditingController();
-  final _quantidadeController = TextEditingController(text: '-1');
-  final CentralDeEstoque _central = CentralDeEstoque.instancia;
-  String? _loteIdSelecionado;
-
-  @override
-  void dispose() {
-    _motivoController.dispose();
-    _quantidadeController.dispose();
-    super.dispose();
-  }
-
-  void _salvar() {
-    final loteId = _loteIdSelecionado;
-    final delta = int.tryParse(_quantidadeController.text.trim()) ?? 0;
-    final motivo = _motivoController.text.trim();
-
-    if (loteId == null || delta == 0 || motivo.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha lote, ajuste e motivo.')),
-      );
-      return;
-    }
-
-    final sucesso = _central.ajustarInventario(
-      loteId: loteId,
-      deltaQuantidade: delta,
-      motivo: motivo,
-      usuario: widget.usuario.nomeCompleto,
-    );
-
-    if (!sucesso) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ajuste nao pode zerar abaixo de 0.')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop(true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final lotes = _central.obterFilaFefo(widget.filtro);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ajuste manual')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: caixaPadrao(),
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: _loteIdSelecionado,
-                      decoration: const InputDecoration(
-                        labelText: 'Selecione o lote',
-                      ),
-                      items: lotes
-                          .map(
-                            (lote) => DropdownMenuItem(
-                              value: lote.id,
-                              child: Text(
-                                '${lote.produto.descricao} â€¢ ${lote.codigoLote} â€¢ saldo ${lote.quantidadeAtual}',
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (valor) {
-                        setState(() => _loteIdSelecionado = valor);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _quantidadeController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Ajuste de quantidade (+/-)',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _motivoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Motivo do ajuste',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _salvar,
-                style: botaoPrimario(),
-                child: const Text('Aplicar ajuste'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TelaIntegracaoDeVendas extends StatefulWidget {
-  const TelaIntegracaoDeVendas({super.key, required this.filialPadrao});
-
-  final String filialPadrao;
-
-  @override
-  State<TelaIntegracaoDeVendas> createState() => _TelaIntegracaoDeVendasState();
-}
-
-class _TelaIntegracaoDeVendasState extends State<TelaIntegracaoDeVendas> {
-  final _eanController = TextEditingController();
-  final _quantidadeController = TextEditingController(text: '1');
-  final _canalController = TextEditingController(text: 'PDV Loja');
-  final CentralDeEstoque _central = CentralDeEstoque.instancia;
-
-  @override
-  void dispose() {
-    _eanController.dispose();
-    _quantidadeController.dispose();
-    _canalController.dispose();
-    super.dispose();
-  }
-
-  void _registrar() {
-    final quantidade = int.tryParse(_quantidadeController.text.trim()) ?? 0;
-    if (_eanController.text.trim().isEmpty || quantidade <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe EAN e quantidade validos.')),
-      );
-      return;
-    }
-
-    final sucesso = _central.registrarSaidaViaIntegracao(
-      ean13: _eanController.text.trim(),
-      quantidade: quantidade,
-      filial: widget.filialPadrao,
-      origem: _canalController.text.trim(),
-    );
-
-    if (!sucesso) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nao foi possivel consumir o estoque FEFO para este EAN.'),
-        ),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop(true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Integracao de vendas')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: caixaPadrao(),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _eanController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'EAN-13'),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _quantidadeController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantidade vendida',
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: _canalController,
-                      decoration: const InputDecoration(
-                        labelText: 'Origem ERP/PDV',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _registrar,
-                style: botaoPrimario(),
-                child: const Text('Registrar saida'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class TelaDeCamera extends StatefulWidget {
-  const TelaDeCamera({super.key});
-
-  @override
-  State<TelaDeCamera> createState() => _TelaDeCameraState();
-}
-
-class _TelaDeCameraState extends State<TelaDeCamera> {
-  final MobileScannerController controladorDaCamera = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-  );
-
-  bool leituraEmProcessamento = false;
-
-  @override
-  void dispose() {
-    controladorDaCamera.dispose();
-    super.dispose();
-  }
-
-  Future<void> _aoDetectar(BarcodeCapture captura) async {
-    if (leituraEmProcessamento || captura.barcodes.isEmpty) {
-      return;
-    }
-
-    final codigoLido = captura.barcodes.first.rawValue;
-    if (codigoLido == null || codigoLido.isEmpty) {
-      return;
-    }
-
-    final ean13 = extrairEan13(codigoLido);
-    if (ean13 == null) {
-      return;
-    }
-
-    setState(() {
-      leituraEmProcessamento = true;
-    });
-    HapticFeedback.heavyImpact();
-
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    if (!mounted) {
-      return;
-    }
-    Navigator.of(context).pop(ean13);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: corSecundariaNordestao,
-      appBar: AppBar(title: const Text('Leitura de EAN-13')),
-      body: Stack(
-        children: [
-          MobileScanner(controller: controladorDaCamera, onDetect: _aoDetectar),
-          Align(
-            child: Container(
-              width: 260,
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: corPrimariaNordestao, width: 3),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 36,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xE6FFFFFF),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0x55F33F2B)),
-              ),
-                child: Text(
-                  leituraEmProcessamento
-                    ? 'Leitura confirmada. Abrindo cadastro do lote...'
-                    : 'Aponte a camera para o codigo EAN-13 do produto.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: corTextoPrincipal),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CabecalhoBipstock extends StatelessWidget {
-  const CabecalhoBipstock({
-    super.key,
-    required this.titulo,
-    required this.subtitulo,
-  });
-
-  final String titulo;
-  final String subtitulo;
+class BrandHero extends StatelessWidget {
+  const BrandHero({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [corPrimariaNordestao, corSecundariaNordestao],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.local_offer_rounded, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BIPSTOCK',
-                    style: TextStyle(
-                      color: corSecundariaNordestao,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2.2,
-                    ),
-                  ),
-                  Text(
-                    'supermercado',
-                    style: TextStyle(
-                      color: corPrimariaNordestao,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 22),
+      children: const [
         Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            height: 1.1,
-            color: corTextoPrincipal,
+          'BIPSTOCK',
+          style: TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w900,
+            color: corPrimariaNordestao,
+            letterSpacing: 6,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 18),
         Text(
-          subtitulo,
-          style: const TextStyle(
-            color: corTextoSecundario,
-            fontSize: 15,
-            height: 1.4,
-          ),
+          'Controle de estoque, validade e reposicao em uma operacao simples.',
+          style: TextStyle(fontSize: 18, height: 1.5, color: corTextoPrincipal),
+        ),
+        SizedBox(height: 18),
+        Text(
+          'CD central, lojas abastecidas, alertas de ruptura e vencimento, leitura de codigo de barras e painel responsivo.',
+          style: TextStyle(fontSize: 15, height: 1.6, color: corTextoSecundario),
         ),
       ],
     );
   }
 }
 
-class RodapeCangaBit extends StatelessWidget {
-  const RodapeCangaBit({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        children: [
-          Text(
-            'App desenvolvido pela Canga Bit',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: corTextoSecundario,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'BIPSTOCK',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: corTextoSecundario,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CartaoResumoOperacao extends StatelessWidget {
-  const _CartaoResumoOperacao({
-    required this.dashboard,
-    required this.ultimaRotina,
+class _LoginCard extends StatelessWidget {
+  const _LoginCard({
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.login,
+    required this.registeringCompany,
+    required this.onToggleRegister,
+    required this.companyController,
+    required this.cnpjController,
+    required this.registerCompany,
   });
 
-  final DashboardValidade dashboard;
-  final String ultimaRotina;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final VoidCallback login;
+  final bool registeringCompany;
+  final VoidCallback onToggleRegister;
+  final TextEditingController companyController;
+  final TextEditingController cnpjController;
+  final VoidCallback registerCompany;
 
   @override
   Widget build(BuildContext context) {
-    final total = dashboard.totalDeLotes == 0 ? 1 : dashboard.totalDeLotes;
-    final progressoSeguro = dashboard.lotesSeguros / total;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: caixaPadrao(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Controle FEFO e validade',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              Text(
-                '${dashboard.lotesSeguros}/${dashboard.totalDeLotes} seguros',
-                style: const TextStyle(
-                  color: corPrimariaNordestao,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              minHeight: 10,
-              value: progressoSeguro.clamp(0, 1),
-              backgroundColor: const Color(0xFFE6EAF2),
-              valueColor: const AlwaysStoppedAnimation(corRiscoSeguro),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Acesso seguro',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'A fila de saida prioriza o lote com vencimento mais proximo. Ultima rotina: $ultimaRotina.',
-            style: const TextStyle(color: corTextoSecundario, height: 1.4),
-          ),
-          if (dashboard.quantidadeVencida > 0) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEFEA),
-                borderRadius: BorderRadius.circular(18),
+            const SizedBox(height: 8),
+            const Text(
+              'Use `gestor@bipstock.com / 1234` ou `operacao@bipstock.com / 1234`.',
+              style: TextStyle(color: corTextoSecundario, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'E-mail'),
+                    validator: validateEmail,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Senha'),
+                    validator: validateRequired,
+                    onFieldSubmitted: (_) => login(),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: login,
+              style: primaryButton(),
+              child: const Text('Entrar'),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: onToggleRegister,
               child: Text(
-                '${dashboard.quantidadeVencida} unidade(s) vencida(s) exigem acao imediata.',
-                style: const TextStyle(
-                  color: corPrimariaNordestao,
-                  fontWeight: FontWeight.w600,
-                ),
+                registeringCompany ? 'Fechar cadastro da empresa' : 'Cadastrar empresa',
               ),
             ),
+            if (registeringCompany) ...[
+              const Divider(color: corBordaSuave, height: 28),
+              TextFormField(
+                controller: companyController,
+                decoration: const InputDecoration(labelText: 'Nome do supermercado'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: cnpjController,
+                decoration: const InputDecoration(labelText: 'CNPJ'),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: registerCompany,
+                style: outlinedButton(),
+                child: const Text('Salvar empresa'),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-class _PainelDeFiltros extends StatelessWidget {
-  const _PainelDeFiltros({
-    required this.filtro,
-    required this.opcoesCategoria,
-    required this.opcoesSetor,
-    required this.opcoesFilial,
-    required this.onChanged,
-  });
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key, required this.controller});
 
-  final FiltroDashboard filtro;
-  final List<String> opcoesCategoria;
-  final List<String> opcoesSetor;
-  final List<String> opcoesFilial;
-  final VoidCallback onChanged;
+  final AppController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: caixaPadrao(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Filtros dinamicos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _DropdownFiltro<String?>(
-                label: 'Categoria',
-                valor: filtro.categoria,
-                itens: [null, ...opcoesCategoria],
-                texto: (item) => item ?? 'Todas',
-                onChanged: (valor) {
-                  filtro.categoria = valor;
-                  onChanged();
-                },
-              ),
-              _DropdownFiltro<String?>(
-                label: 'Setor',
-                valor: filtro.setor,
-                itens: [null, ...opcoesSetor],
-                texto: (item) => item ?? 'Todos',
-                onChanged: (valor) {
-                  filtro.setor = valor;
-                  onChanged();
-                },
-              ),
-              _DropdownFiltro<String?>(
-                label: 'Filial',
-                valor: filtro.filial,
-                itens: [null, ...opcoesFilial],
-                texto: (item) => item ?? 'Todas',
-                onChanged: (valor) {
-                  filtro.filial = valor;
-                  onChanged();
-                },
-              ),
-              _DropdownFiltro<ZonaValidade?>(
-                label: 'Zona de risco',
-                valor: filtro.zona,
-                itens: [null, ...ZonaValidade.values],
-                texto: (item) => item?.rotulo ?? 'Todas',
-                onChanged: (valor) {
-                  filtro.zona = valor;
-                  onChanged();
-                },
-              ),
-              _DropdownFiltro<PeriodoFiltro>(
-                label: 'Periodo',
-                valor: filtro.periodo,
-                itens: PeriodoFiltro.values,
-                texto: (item) => item.rotulo,
-                onChanged: (valor) {
-                  if (valor == null) {
-                    return;
-                  }
-                  filtro.periodo = valor;
-                  onChanged();
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _DropdownFiltro<T> extends StatelessWidget {
-  const _DropdownFiltro({
-    required this.label,
-    required this.valor,
-    required this.itens,
-    required this.texto,
-    required this.onChanged,
-  });
-
-  final String label;
-  final T valor;
-  final List<T> itens;
-  final String Function(T) texto;
-  final ValueChanged<T?> onChanged;
+class _HomeShellState extends State<HomeShell> {
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 210,
-      child: DropdownButtonFormField<T>(
-        value: valor,
-        decoration: InputDecoration(labelText: label),
-        items: itens
-            .map(
-              (item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(texto(item)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
+    final session = widget.controller.session!;
+    final pages = [
+      DashboardPage(controller: widget.controller),
+      ProductsPage(controller: widget.controller),
+      OperationsPage(controller: widget.controller),
+      AlertsPage(controller: widget.controller),
+      ReportsPage(controller: widget.controller),
+    ];
 
-class _CardIndicador extends StatelessWidget {
-  const _CardIndicador({
-    required this.titulo,
-    required this.valor,
-    required this.detalhe,
-    required this.destaque,
-  });
-
-  final String titulo;
-  final String valor;
-  final String detalhe;
-  final Color destaque;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: corSuperficie,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: corBordaSuave),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titulo,
-            style: const TextStyle(
-              color: corTextoSecundario,
-              fontWeight: FontWeight.w600,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 980;
+        if (compact) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(widget.controller.activeStore.name),
+              actions: [_SessionMenu(controller: widget.controller)],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: destaque,
+            body: pages[_index],
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (value) => setState(() => _index = value),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+                NavigationDestination(icon: Icon(Icons.inventory_2), label: 'Produtos'),
+                NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Operação'),
+                NavigationDestination(icon: Icon(Icons.notifications), label: 'Alertas'),
+                NavigationDestination(icon: Icon(Icons.summarize), label: 'Relatórios'),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            detalhe,
-            style: const TextStyle(color: corTextoSecundario, height: 1.35),
-          ),
-        ],
-      ),
-    );
-  }
-}
+          );
+        }
 
-class _CardLoteFefo extends StatelessWidget {
-  const _CardLoteFefo({required this.lote, this.onAplicarAcao});
-
-  final LoteEstoque lote;
-  final VoidCallback? onAplicarAcao;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: caixaPadrao(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  lote.produto.descricao,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                    color: corTextoPrincipal,
-                  ),
-                ),
-              ),
-              _ChipZona(zona: lote.zonaValidade),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${lote.produto.categoria} â€¢ ${lote.produto.setor} â€¢ ${lote.filial}',
-            style: const TextStyle(color: corTextoSecundario),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _InfoCurta(titulo: 'EAN', valor: lote.produto.ean13),
-              _InfoCurta(titulo: 'Lote', valor: lote.codigoLote),
-              _InfoCurta(titulo: 'Saldo', valor: '${lote.quantidadeAtual}'),
-              _InfoCurta(
-                titulo: 'Validade',
-                valor:
-                    '${formatarData(lote.validade)} â€¢ ${lote.diasParaVencerRotulo}',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Regra FEFO: este lote tem prioridade de saida para vendas e separacoes.',
-            style: const TextStyle(color: corTextoSecundario, height: 1.35),
-          ),
-          if (onAplicarAcao != null) ...[
-            const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onAplicarAcao,
-                icon: const Icon(Icons.local_offer_outlined),
-                label: const Text('Aplicar acao preventiva'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CardAlerta extends StatelessWidget {
-  const _CardAlerta({required this.alerta});
-
-  final AlertaValidade alerta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: corSuperficie,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: corBordaSuave),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: corDaZona(alerta.zona).withOpacity(0.12),
-            child: Icon(
-              alerta.zona == ZonaValidade.critico
-                  ? Icons.warning_amber_rounded
-                  : alerta.zona == ZonaValidade.vencido
-                  ? Icons.error_outline_rounded
-                  : alerta.zona == ZonaValidade.ruptura
-                  ? Icons.inventory_2_outlined
-                  : Icons.notifications_active_outlined,
-              color: corDaZona(alerta.zona),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        return Scaffold(
+          body: SafeArea(
+            child: Row(
               children: [
-                Text(
-                  alerta.titulo,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: corTextoPrincipal,
+                NavigationRail(
+                  selectedIndex: _index,
+                  onDestinationSelected: (value) => setState(() => _index = value),
+                  backgroundColor: const Color(0xFF091321),
+                  labelType: NavigationRailLabelType.all,
+                  leading: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 24, 12, 32),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'BIPSTOCK',
+                          style: TextStyle(
+                            color: corPrimariaNordestao,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          session.user.role.label,
+                          style: const TextStyle(color: corTextoSecundario, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      selectedIcon: Icon(Icons.dashboard),
+                      label: Text('Dashboard'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.inventory_2_outlined),
+                      selectedIcon: Icon(Icons.inventory_2),
+                      label: Text('Produtos'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.qr_code_scanner_outlined),
+                      selectedIcon: Icon(Icons.qr_code_scanner),
+                      label: Text('Operação'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.notifications_outlined),
+                      selectedIcon: Icon(Icons.notifications),
+                      label: Text('Alertas'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.summarize_outlined),
+                      selectedIcon: Icon(Icons.summarize),
+                      label: Text('Relatórios'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  alerta.descricao,
-                  style: const TextStyle(color: corTextoSecundario, height: 1.35),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${alerta.canalNotificacao} â€¢ ${formatarDataHora(alerta.criadoEm)}',
-                  style: const TextStyle(
-                    color: corTextoSecundario,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: corBordaSuave)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.controller.activeStore.name,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Usuário: ${session.user.fullName} • ${session.user.role.label}',
+                                    style: const TextStyle(color: corTextoSecundario),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _SessionMenu(controller: widget.controller),
+                          ],
+                        ),
+                      ),
+                      Expanded(child: pages[_index]),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _SessionMenu extends StatelessWidget {
+  const _SessionMenu({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: controller.activeStore.id,
+            dropdownColor: corSuperficie,
+            onChanged: (value) {
+              if (value != null) {
+                controller.selectStore(value);
+              }
+            },
+            items: controller.storeOptions
+                .map(
+                  (store) => DropdownMenuItem(
+                    value: store.id,
+                    child: Text(store.name),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: controller.logout,
+          style: outlinedButton(),
+          icon: const Icon(Icons.logout),
+          label: const Text('Sair'),
+        ),
+      ],
+    );
+  }
+}
+
+class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final dashboard = controller.dashboard;
+    final recommendations = controller.recommendations;
+    final queue = controller.fefoQueue.take(6).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              KpiCard(label: 'Próximos ao vencimento', value: '${dashboard.nearExpiry}'),
+              KpiCard(label: 'Produtos vencidos', value: '${dashboard.expired}'),
+              KpiCard(label: 'Perdas evitadas', value: money(dashboard.lossesAvoided)),
+              KpiCard(label: 'Economia estimada', value: money(dashboard.estimatedSavings)),
+              KpiCard(label: 'Produtos cadastrados', value: '${dashboard.productsRegistered}'),
+              KpiCard(label: 'Alertas ativos', value: '${dashboard.activeAlerts}'),
+            ],
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 1080;
+              if (compact) {
+                return Column(
+                  children: [
+                    RecommendationPanel(controller: controller, recommendations: recommendations),
+                    const SizedBox(height: 16),
+                    FefoQueueCard(queue: queue),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: RecommendationPanel(
+                      controller: controller,
+                      recommendations: recommendations,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: FefoQueueCard(queue: queue)),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          LogisticsOverviewCard(controller: controller),
         ],
       ),
     );
   }
 }
 
-class _CardAcaoPreventiva extends StatelessWidget {
-  const _CardAcaoPreventiva({
-    required this.acao,
-    required this.podeExecutar,
-    this.onExecutar,
-  });
+class LogisticsOverviewCard extends StatelessWidget {
+  const LogisticsOverviewCard({super.key, required this.controller});
 
-  final SugestaoAcaoPreventiva acao;
-  final bool podeExecutar;
-  final VoidCallback? onExecutar;
+  final AppController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: caixaPadrao(),
+    final cd = controller.distributionCenter;
+    final stores = controller.displayStores;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Rede logistica',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            if (cd != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEFEA),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: corPrimariaNordestao),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warehouse_outlined, color: corPrimariaNordestao),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${cd.name} • centro principal de abastecimento',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: stores
+                  .map(
+                    (store) => SizedBox(
+                      width: 220,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: corSuperficie,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: corBordaSuave),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.storefront_outlined, color: corSecundariaNordestao),
+                            const SizedBox(height: 8),
+                            Text(
+                              store.name,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              store.regionLabel,
+                              style: const TextStyle(color: corTextoSecundario),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProductsPage extends StatelessWidget {
+  const ProductsPage({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final products = controller.filteredProducts;
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(
+              hintText: 'Pesquisar por nome, EAN, categoria ou lote',
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: controller.updateSearch,
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.separated(
+              itemCount: products.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final product = products[index];
+                final balance = controller.totalStockForProduct(product.id);
+                final lots = controller.batchesForProduct(product.id);
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                product.description,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            StatusChip(
+                              label: balance <= product.minStock ? 'Ruptura' : 'Estável',
+                              color: balance <= product.minStock ? corRiscoCritico : corRiscoSeguro,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'EAN ${product.ean13} • ${product.category} • ${product.sector}',
+                          style: const TextStyle(color: corTextoSecundario),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            MiniStat(label: 'Saldo total', value: '$balance un'),
+                            MiniStat(label: 'Estoque mínimo', value: '${product.minStock} un'),
+                            MiniStat(label: 'Lotes', value: '${lots.length}'),
+                            MiniStat(label: 'Preço médio', value: money(product.unitValue)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OperationsPage extends StatefulWidget {
+  const OperationsPage({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<OperationsPage> createState() => _OperationsPageState();
+}
+
+class _OperationsPageState extends State<OperationsPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _eanController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _sectorController = TextEditingController();
+  final _batchController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
+  final _minStockController = TextEditingController(text: '5');
+  final _unitValueController = TextEditingController(text: '0,00');
+  final _expiryController = TextEditingController(
+    text: DateTime.now().add(const Duration(days: 7)).toIso8601String().split('T').first,
+  );
+  final _saleEanController = TextEditingController();
+  final _saleQtyController = TextEditingController(text: '1');
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _batchController.text = generateBatchCode();
+    _selectedCategory = widget.controller.categoryProfiles.first.name;
+    _applyCategoryProfile(_selectedCategory!);
+  }
+
+  @override
+  void dispose() {
+    _eanController.dispose();
+    _descriptionController.dispose();
+    _categoryController.dispose();
+    _sectorController.dispose();
+    _batchController.dispose();
+    _quantityController.dispose();
+    _minStockController.dispose();
+    _unitValueController.dispose();
+    _expiryController.dispose();
+    _saleEanController.dispose();
+    _saleQtyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scanEan() async {
+    final value = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeCaptureScreen()),
+    );
+    if (value != null) {
+      setState(() => _eanController.text = value);
+      _syncCatalogProduct();
+    }
+  }
+
+  void _syncCatalogProduct() {
+    final product = widget.controller.findProductByEan(_eanController.text.trim());
+    if (product == null) {
+      return;
+    }
+
+    final categoryProfile = widget.controller.categoryProfileForName(product.category);
+    setState(() {
+      _descriptionController.text = product.description;
+      _selectedCategory = product.category;
+      _categoryController.text = product.category;
+      _sectorController.text = product.sector;
+      _minStockController.text = product.minStock.toString();
+      _unitValueController.text = product.unitValue.toStringAsFixed(2).replaceAll('.', ',');
+      if (categoryProfile != null) {
+        _expiryController.text = suggestedExpiryFor(categoryProfile.shelfLifeDays);
+      }
+    });
+  }
+
+  void _applyCategoryProfile(String categoryName) {
+    final profile = widget.controller.categoryProfileForName(categoryName);
+    if (profile == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedCategory = profile.name;
+      _categoryController.text = profile.name;
+      _sectorController.text = profile.sector;
+      _expiryController.text = suggestedExpiryFor(profile.shelfLifeDays);
+    });
+  }
+
+  void _registerBatch() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final expiry = DateTime.tryParse(_expiryController.text.trim());
+    if (expiry == null) {
+      showSnack(context, 'Informe a validade no formato AAAA-MM-DD.');
+      return;
+    }
+    widget.controller.registerBatch(
+      ean13: _eanController.text.trim(),
+      description: _descriptionController.text.trim(),
+      category: _categoryController.text.trim(),
+      sector: _sectorController.text.trim(),
+      batchCode: _batchController.text.trim(),
+      quantity: int.parse(_quantityController.text.trim()),
+      minStock: int.parse(_minStockController.text.trim()),
+      unitValue: parseCurrency(_unitValueController.text),
+      expiresAt: expiry,
+    );
+    _batchController.text = generateBatchCode();
+    showSnack(context, 'Lote registrado e histórico atualizado.');
+    setState(() {});
+  }
+
+  void _simulateSale() {
+    final ok = widget.controller.consumeStock(
+      _saleEanController.text.trim(),
+      int.tryParse(_saleQtyController.text.trim()) ?? 0,
+    );
+    showSnack(
+      context,
+      ok ? 'Venda processada com FEFO.' : 'Não foi possível processar a venda.',
+    );
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recentBatches = widget.controller.recentBatches.take(5).toList();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 1080;
+               final form = ResponsiveBatchFormCard(
+                 categories: widget.controller.categoryProfiles,
+                 formKey: _formKey,
+                 eanController: _eanController,
+                 descriptionController: _descriptionController,
+                 categoryController: _categoryController,
+                 sectorController: _sectorController,
+                batchController: _batchController,
+                quantityController: _quantityController,
+                minStockController: _minStockController,
+                unitValueController: _unitValueController,
+                 expiryController: _expiryController,
+                 scanEan: _scanEan,
+                 registerBatch: _registerBatch,
+                 selectedCategory: _selectedCategory,
+                 onCategoryChanged: _applyCategoryProfile,
+                 onEanEditingComplete: _syncCatalogProduct,
+                );
+              final actions = _OperationsActionsCard(
+                controller: widget.controller,
+                saleEanController: _saleEanController,
+                saleQtyController: _saleQtyController,
+                simulateSale: _simulateSale,
+              );
+
+              if (compact) {
+                return Column(
+                  children: [
+                    form,
+                    const SizedBox(height: 16),
+                    actions,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: form),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 2, child: actions),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Últimos lotes registrados',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  ...recentBatches.map(
+                    (batch) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('${batch.productDescription} • lote ${batch.batchCode}'),
+                      subtitle: Text(
+                        '${batch.quantityCurrent} un • validade ${shortDate(batch.expiresAt)} • ${batch.storeName}',
+                      ),
+                      trailing: StatusChip(
+                        label: batch.zone.label,
+                        color: zoneColor(batch.zone),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BatchFormCard extends StatelessWidget {
+  const _BatchFormCard({
+    required this.categories,
+    required this.formKey,
+    required this.eanController,
+    required this.descriptionController,
+    required this.categoryController,
+    required this.sectorController,
+    required this.batchController,
+    required this.quantityController,
+    required this.minStockController,
+    required this.unitValueController,
+    required this.expiryController,
+    required this.scanEan,
+    required this.registerBatch,
+    required this.selectedCategory,
+    required this.onCategoryChanged,
+    required this.onEanEditingComplete,
+  });
+
+  final List<CategoryProfile> categories;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController eanController;
+  final TextEditingController descriptionController;
+  final TextEditingController categoryController;
+  final TextEditingController sectorController;
+  final TextEditingController batchController;
+  final TextEditingController quantityController;
+  final TextEditingController minStockController;
+  final TextEditingController unitValueController;
+  final TextEditingController expiryController;
+  final Future<void> Function() scanEan;
+  final VoidCallback registerBatch;
+  final String? selectedCategory;
+  final ValueChanged<String> onCategoryChanged;
+  final VoidCallback onEanEditingComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Entrada por lote',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'RF03, RF04, RF05, RF06 e RF07: leitura de EAN-13, registro de lote/validade, histórico, controle por lote e FEFO.',
+                style: TextStyle(color: corTextoSecundario, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: eanController,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(labelText: 'EAN-13'),
+                      validator: validateEan13,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: scanEan,
+                    style: outlinedButton(),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Ler código'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Descrição'),
+                validator: validateRequired,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: categoryController,
+                      decoration: const InputDecoration(labelText: 'Categoria'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: sectorController,
+                      decoration: const InputDecoration(labelText: 'Setor'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: batchController,
+                      decoration: const InputDecoration(labelText: 'Lote'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: expiryController,
+                      decoration: const InputDecoration(
+                        labelText: 'Validade (AAAA-MM-DD)',
+                      ),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(labelText: 'Quantidade'),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: validatePositiveInt,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: minStockController,
+                      decoration: const InputDecoration(labelText: 'Estoque mínimo'),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: validatePositiveInt,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: unitValueController,
+                      decoration: const InputDecoration(labelText: 'Valor unitário'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: registerBatch,
+                style: primaryButton(),
+                child: const Text('Registrar lote'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ResponsiveBatchFormCard extends StatelessWidget {
+  const ResponsiveBatchFormCard({
+    super.key,
+    required this.categories,
+    required this.formKey,
+    required this.eanController,
+    required this.descriptionController,
+    required this.categoryController,
+    required this.sectorController,
+    required this.batchController,
+    required this.quantityController,
+    required this.minStockController,
+    required this.unitValueController,
+    required this.expiryController,
+    required this.scanEan,
+    required this.registerBatch,
+    required this.selectedCategory,
+    required this.onCategoryChanged,
+    required this.onEanEditingComplete,
+  });
+
+  final List<CategoryProfile> categories;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController eanController;
+  final TextEditingController descriptionController;
+  final TextEditingController categoryController;
+  final TextEditingController sectorController;
+  final TextEditingController batchController;
+  final TextEditingController quantityController;
+  final TextEditingController minStockController;
+  final TextEditingController unitValueController;
+  final TextEditingController expiryController;
+  final Future<void> Function() scanEan;
+  final VoidCallback registerBatch;
+  final String? selectedCategory;
+  final ValueChanged<String> onCategoryChanged;
+  final VoidCallback onEanEditingComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cadastro de produto',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 320,
+                    child: TextFormField(
+                      controller: eanController,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(labelText: 'EAN-13'),
+                      validator: validateEan13,
+                      onEditingComplete: onEanEditingComplete,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: scanEan,
+                    style: outlinedButton(),
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Abrir camera'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Produto'),
+                validator: validateRequired,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 320,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(labelText: 'Categoria'),
+                      items: categories
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item.name,
+                              child: Text(item.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          onCategoryChanged(value);
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 220,
+                    child: TextFormField(
+                      controller: sectorController,
+                      decoration: const InputDecoration(labelText: 'Setor'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    child: TextFormField(
+                      controller: batchController,
+                      decoration: const InputDecoration(labelText: 'Lote'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 220,
+                    child: TextFormField(
+                      controller: expiryController,
+                      decoration: const InputDecoration(labelText: 'Validade (AAAA-MM-DD)'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: 180,
+                    child: TextFormField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(labelText: 'Quantidade'),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: validatePositiveInt,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: TextFormField(
+                      controller: minStockController,
+                      decoration: const InputDecoration(labelText: 'Estoque minimo'),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: validatePositiveInt,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: TextFormField(
+                      controller: unitValueController,
+                      decoration: const InputDecoration(labelText: 'Valor unitario'),
+                      validator: validateRequired,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'A categoria sugere setor e validade inicial.',
+                style: TextStyle(color: corTextoSecundario),
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: registerBatch,
+                style: primaryButton(),
+                child: const Text('Salvar lote'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OperationsActionsCard extends StatelessWidget {
+  const _OperationsActionsCard({
+    required this.controller,
+    required this.saleEanController,
+    required this.saleQtyController,
+    required this.simulateSale,
+  });
+
+  final AppController controller;
+  final TextEditingController saleEanController;
+  final TextEditingController saleQtyController;
+  final VoidCallback simulateSale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Importação e integração MVP',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                controller.importSampleSheet();
+                showSnack(context, 'Importação simulada por planilha executada.');
+              },
+              style: outlinedButton(),
+              icon: const Icon(Icons.table_view),
+              label: const Text('Importar planilha'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () {
+                controller.importApiPayload();
+                showSnack(context, 'Importação simulada por API executada.');
+              },
+              style: outlinedButton(),
+              icon: const Icon(Icons.cloud_sync),
+              label: const Text('Importar API'),
+            ),
+            const Divider(color: corBordaSuave, height: 28),
+            const Text(
+              'Simular saída de venda com FEFO',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: saleEanController,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(labelText: 'EAN-13'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: saleQtyController,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(labelText: 'Quantidade vendida'),
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: simulateSale,
+              style: primaryButton(),
+              child: const Text('Processar venda'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AlertsPage extends StatelessWidget {
+  const AlertsPage({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final alerts = controller.alerts;
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
         children: [
           Row(
             children: [
               Expanded(
                 child: Text(
-                  acao.titulo,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
+                  'Alertas ativos: ${alerts.where((item) => !item.acknowledged).length}',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
               ),
-              Text(
-                formatarMoeda(acao.valorImpactado),
-                style: const TextStyle(
-                  color: corPrimariaNordestao,
-                  fontWeight: FontWeight.w800,
-                ),
+              OutlinedButton.icon(
+                onPressed: controller.refreshOperationalRules,
+                style: outlinedButton(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Atualizar motor'),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            acao.descricao,
-            style: const TextStyle(color: corTextoSecundario, height: 1.35),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${acao.lote.produto.descricao} â€¢ lote ${acao.lote.codigoLote} â€¢ ${acao.lote.diasParaVencerRotulo}',
-            style: const TextStyle(
-              color: corTextoSecundario,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.separated(
+              itemCount: alerts.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final alert = alerts[index];
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                alert.title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            StatusChip(
+                              label: alert.zone.label,
+                              color: zoneColor(alert.zone),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(alert.description, style: const TextStyle(height: 1.5)),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${alert.channel} • ${shortDateTime(alert.createdAt)}',
+                          style: const TextStyle(color: corTextoSecundario),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            OutlinedButton(
+                              onPressed: alert.acknowledged
+                                  ? null
+                                  : () {
+                                      controller.handleAlert(
+                                        alert.id,
+                                        AlertResolution.promotion,
+                                      );
+                                      showSnack(
+                                        context,
+                                        'Promoção registrada e auditoria atualizada.',
+                                      );
+                                    },
+                              style: outlinedButton(),
+                              child: const Text('Aplicar promoção'),
+                            ),
+                            OutlinedButton(
+                              onPressed: alert.acknowledged
+                                  ? null
+                                  : () {
+                                      controller.handleAlert(
+                                        alert.id,
+                                        AlertResolution.restock,
+                                      );
+                                      showSnack(context, 'Reabastecimento registrado.');
+                                    },
+                              style: outlinedButton(),
+                              child: const Text('Reabastecer'),
+                            ),
+                            OutlinedButton(
+                              onPressed: alert.acknowledged
+                                  ? null
+                                  : () {
+                                      controller.handleAlert(
+                                        alert.id,
+                                        AlertResolution.discard,
+                                      );
+                                      showSnack(context, 'Descarte/auditoria registrados.');
+                                    },
+                              style: outlinedButton(),
+                              child: const Text('Descartar'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-          if (podeExecutar) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonalIcon(
-                onPressed: onExecutar,
-                icon: const Icon(Icons.task_alt_rounded),
-                label: const Text('Executar'),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _MiniCardLote extends StatelessWidget {
-  const _MiniCardLote({required this.lote});
+class ReportsPage extends StatelessWidget {
+  const ReportsPage({super.key, required this.controller});
 
-  final LoteEstoque lote;
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final report = controller.report;
+    final audits = controller.auditTrail.take(12).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              KpiCard(label: 'Perdas no período', value: money(report.losses)),
+              KpiCard(label: 'Economia gerada', value: money(report.savings)),
+              KpiCard(label: 'Produtos salvos', value: '${report.savedProducts}'),
+              KpiCard(label: 'ROI estimado', value: '${report.roi.toStringAsFixed(1)}%'),
+              KpiCard(
+                label: 'Redução das perdas',
+                value: '${report.lossReduction.toStringAsFixed(1)}%',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Auditoria e rastreabilidade',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  ...audits.map(
+                    (audit) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(audit.action),
+                      subtitle: Text(
+                        '${audit.details} • ${audit.userName} • ${shortDateTime(audit.createdAt)}',
+                      ),
+                      trailing: Text(
+                        money(audit.financialImpact),
+                        style: const TextStyle(
+                          color: corPrimariaNordestao,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RecommendationPanel extends StatelessWidget {
+  const RecommendationPanel({
+    super.key,
+    required this.controller,
+    required this.recommendations,
+  });
+
+  final AppController controller;
+  final List<RecommendationItem> recommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Recomendações automáticas',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            ...recommendations.take(6).map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.title),
+                subtitle: Text(item.description),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.action,
+                      style: const TextStyle(color: corPrimariaNordestao, fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      money(item.impact),
+                      style: const TextStyle(color: corTextoSecundario, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FefoQueueCard extends StatelessWidget {
+  const FefoQueueCard({super.key, required this.queue});
+
+  final List<StockBatch> queue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Fila FEFO',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            ...queue.map(
+              (batch) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${batch.productDescription} • ${batch.batchCode}'),
+                subtitle: Text(
+                  'Validade ${shortDate(batch.expiresAt)} • ${batch.quantityCurrent} un',
+                ),
+                trailing: StatusChip(
+                  label: batch.zone.label,
+                  color: zoneColor(batch.zone),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class KpiCard extends StatelessWidget {
+  const KpiCard({super.key, required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: corTextoSecundario, height: 1.4)),
+              const SizedBox(height: 10),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MiniStat extends StatelessWidget {
+  const MiniStat({super.key, required this.label, required this.value});
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: corSuperficie,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: corBordaSuave),
+        color: corSuperficie,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ChipZona(zona: lote.zonaValidade),
-          const Spacer(),
-          Text(
-            lote.produto.descricao,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: corTextoPrincipal,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Lote ${lote.codigoLote}',
-            style: const TextStyle(color: corTextoSecundario),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${lote.quantidadeAtual} un â€¢ ${lote.diasParaVencerRotulo}',
-            style: const TextStyle(
-              color: corPrimariaNordestao,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: corTextoSecundario, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
 }
 
-class _PainelVazio extends StatelessWidget {
-  const _PainelVazio({required this.titulo, required this.subtitulo});
-
-  final String titulo;
-  final String subtitulo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: caixaPadrao(),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.inbox_outlined,
-            size: 32,
-            color: corTextoSecundario,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            titulo,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: corTextoPrincipal,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitulo,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: corTextoSecundario),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AtalhoValidade extends StatelessWidget {
-  const _AtalhoValidade({required this.label, required this.onTap});
+class StatusChip extends StatelessWidget {
+  const StatusChip({super.key, required this.label, required this.color});
 
   final String label;
-  final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: corPrimariaNordestao,
-        side: const BorderSide(color: corPrimariaNordestao),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      child: Text(label),
-    );
-  }
-}
-
-class _ChipZona extends StatelessWidget {
-  const _ChipZona({required this.zona});
-
-  final ZonaValidade zona;
-
-  @override
-  Widget build(BuildContext context) {
-    final cor = corDaZona(zona);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: cor.withOpacity(0.12),
+        color: color.withOpacity(0.14),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color),
       ),
-      child: Text(
-        zona.rotulo,
-        style: TextStyle(color: cor, fontWeight: FontWeight.w800),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Text(
+          label,
+          style: TextStyle(color: color, fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }
 }
 
-class _InfoCurta extends StatelessWidget {
-  const _InfoCurta({required this.titulo, required this.valor});
-
-  final String titulo;
-  final String valor;
+class BarcodeCaptureScreen extends StatefulWidget {
+  const BarcodeCaptureScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FB),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        '$titulo: $valor',
-        style: const TextStyle(
-          color: corTextoPrincipal,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
+  State<BarcodeCaptureScreen> createState() => _BarcodeCaptureScreenState();
 }
 
-class _ItemAcaoRapida extends StatelessWidget {
-  const _ItemAcaoRapida({
-    required this.titulo,
-    required this.icone,
-    required this.onTap,
-  });
-
-  final String titulo;
-  final IconData icone;
-  final VoidCallback onTap;
+class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
+  final _manualController = TextEditingController();
+  final MobileScannerController _scannerController = MobileScannerController(
+    facing: CameraFacing.back,
+    detectionSpeed: DetectionSpeed.normal,
+    autoStart: true,
+  );
+  bool _handled = false;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Ink(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: corBordaSuave),
-        ),
-        child: Row(
-          children: [
-            Icon(icone, color: corPrimariaNordestao),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                titulo,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _AcaoRapida { escanear, cadastrarLote, integracao, ajusteManual, relatorio }
-
-enum TipoPerfilUsuario { gestor, repositor }
-
-enum ZonaValidade { vencido, ruptura, critico, alerta, seguro }
-
-enum PeriodoFiltro {
-  hoje('Hoje'),
-  seteDias('7 dias'),
-  quinzeDias('15 dias'),
-  trintaDias('30 dias'),
-  todos('Todo o historico');
-
-  const PeriodoFiltro(this.rotulo);
-  final String rotulo;
-}
-
-class ResultadoCadastro {
-  const ResultadoCadastro({this.contaUsuario, this.mensagemErro});
-
-  final ContaUsuario? contaUsuario;
-  final String? mensagemErro;
-}
-
-class ContaUsuario {
-  ContaUsuario({
-    required this.nomeCompleto,
-    required this.email,
-    required this.telefone,
-    required this.cpf,
-    required this.senha,
-    required this.perfil,
-    this.lojaSelecionada,
-  });
-
-  final String nomeCompleto;
-  final String email;
-  final String telefone;
-  final String cpf;
-  String senha;
-  final TipoPerfilUsuario perfil;
-  String? lojaSelecionada;
-
-  String get primeiroNome {
-    final partes = nomeCompleto.trim().split(RegExp(r'\s+'));
-    return partes.isEmpty ? nomeCompleto : partes.first;
+  void dispose() {
+    _scannerController.dispose();
+    _manualController.dispose();
+    super.dispose();
   }
 
-  String get nomeDoPerfil =>
-      perfil == TipoPerfilUsuario.gestor ? 'Gestor' : 'Repositor';
-}
-
-class ProdutoCatalogo {
-  const ProdutoCatalogo({
-    required this.ean13,
-    required this.descricao,
-    required this.categoria,
-    required this.setor,
-    required this.valorUnitario,
-    this.estoqueMinimo = 5,
-  });
-
-  final String ean13;
-  final String descricao;
-  final String categoria;
-  final String setor;
-  final double valorUnitario;
-  final int estoqueMinimo;
-}
-
-class LoteEstoque {
-  const LoteEstoque({
-    required this.id,
-    required this.produto,
-    required this.codigoLote,
-    required this.quantidadeAtual,
-    required this.valorUnitario,
-    required this.validade,
-    required this.filial,
-    required this.criadoEm,
-  });
-
-  final String id;
-  final ProdutoCatalogo produto;
-  final String codigoLote;
-  final int quantidadeAtual;
-  final double valorUnitario;
-  final DateTime validade;
-  final String filial;
-  final DateTime criadoEm;
-
-  ZonaValidade get zonaValidade => zonaParaData(validade);
-
-  int get diasParaVencer => somenteData(validade)
-      .difference(somenteData(DateTime.now()))
-      .inDays;
-
-  String get diasParaVencerRotulo {
-    if (diasParaVencer < 0) {
-      return 'vencido ha ${diasParaVencer.abs()} dia(s)';
-    }
-    if (diasParaVencer == 0) {
-      return 'vence hoje';
-    }
-    return 'vence em $diasParaVencer dia(s)';
-  }
-
-  double get valorTotal => quantidadeAtual * valorUnitario;
-
-  LoteEstoque copyWith({
-    int? quantidadeAtual,
-    DateTime? validade,
-  }) {
-    return LoteEstoque(
-      id: id,
-      produto: produto,
-      codigoLote: codigoLote,
-      quantidadeAtual: quantidadeAtual ?? this.quantidadeAtual,
-      valorUnitario: valorUnitario,
-      validade: validade ?? this.validade,
-      filial: filial,
-      criadoEm: criadoEm,
-    );
-  }
-}
-
-class AlertaValidade {
-  const AlertaValidade({
-    required this.id,
-    required this.loteId,
-    required this.titulo,
-    required this.descricao,
-    required this.zona,
-    required this.canalNotificacao,
-    required this.criadoEm,
-  });
-
-  final String id;
-  final String loteId;
-  final String titulo;
-  final String descricao;
-  final ZonaValidade zona;
-  final String canalNotificacao;
-  final DateTime criadoEm;
-}
-
-class EventoEstoque {
-  const EventoEstoque({
-    required this.id,
-    required this.loteId,
-    required this.tipo,
-    required this.quantidade,
-    required this.motivo,
-    required this.usuario,
-    required this.criadoEm,
-    this.valorImpactado = 0,
-  });
-
-  final String id;
-  final String loteId;
-  final String tipo;
-  final int quantidade;
-  final String motivo;
-  final String usuario;
-  final DateTime criadoEm;
-  final double valorImpactado;
-}
-
-class SugestaoAcaoPreventiva {
-  const SugestaoAcaoPreventiva({
-    required this.lote,
-    required this.titulo,
-    required this.descricao,
-    required this.valorImpactado,
-  });
-
-  final LoteEstoque lote;
-  final String titulo;
-  final String descricao;
-  final double valorImpactado;
-}
-
-class DashboardValidade {
-  const DashboardValidade({
-    required this.totalDeLotes,
-    required this.lotesSeguros,
-    required this.lotesEmRisco,
-    required this.itensCriticos,
-    required this.itensEmAlerta,
-    required this.valorLotesCriticos,
-    required this.valorDePerdasEvitadas,
-    required this.quantidadeTotalEmEstoque,
-    required this.quantidadeVencida,
-    required this.totalAlertas,
-    required this.acoesPreventivasExecutadas,
-  });
-
-  final int totalDeLotes;
-  final int lotesSeguros;
-  final int lotesEmRisco;
-  final int itensCriticos;
-  final int itensEmAlerta;
-  final double valorLotesCriticos;
-  final double valorDePerdasEvitadas;
-  final int quantidadeTotalEmEstoque;
-  final int quantidadeVencida;
-  final int totalAlertas;
-  final int acoesPreventivasExecutadas;
-}
-
-class ResultadoRotinaDiaria {
-  const ResultadoRotinaDiaria({
-    required this.novosAlertas,
-    required this.notificacoesEnviadas,
-  });
-
-  final int novosAlertas;
-  final int notificacoesEnviadas;
-}
-
-class FiltroDashboard {
-  String? categoria;
-  String? setor;
-  String? filial;
-  ZonaValidade? zona;
-  PeriodoFiltro periodo = PeriodoFiltro.trintaDias;
-}
-
-class ArmazenamentoAutenticacao {
-  ArmazenamentoAutenticacao._() {
-    cadastrarConta(
-      nomeCompleto: 'Chagas',
-      email: 'chagas@plugselo.com',
-      telefone: '(84) 99999-1111',
-      cpf: '00000000000',
-      senha: '1234',
-      perfil: TipoPerfilUsuario.gestor,
-      lojaSelecionada: 'Nordestao Tirol',
-    );
-    cadastrarConta(
-      nomeCompleto: 'Fernando',
-      email: 'fernando@plugselo.com',
-      telefone: '(84) 99999-2222',
-      cpf: '11111111111',
-      senha: '4321',
-      perfil: TipoPerfilUsuario.repositor,
-    );
-  }
-
-  static final ArmazenamentoAutenticacao instancia =
-      ArmazenamentoAutenticacao._();
-
-  final Map<String, ContaUsuario> contasPorEmail = {};
-  final Map<String, String> codigosDeRecuperacaoPorEmail = {};
-
-  ResultadoCadastro cadastrarConta({
-    required String nomeCompleto,
-    required String email,
-    required String telefone,
-    required String cpf,
-    required String senha,
-    required TipoPerfilUsuario perfil,
-    String? lojaSelecionada,
-  }) {
-    final emailNormalizado = email.trim().toLowerCase();
-    if (contasPorEmail.containsKey(emailNormalizado)) {
-      return const ResultadoCadastro(
-        mensagemErro: 'Ja existe cadastro com este e-mail.',
-      );
-    }
-
-    final contaUsuario = ContaUsuario(
-      nomeCompleto: nomeCompleto,
-      email: emailNormalizado,
-      telefone: telefone,
-      cpf: cpf,
-      senha: senha,
-      perfil: perfil,
-      lojaSelecionada: lojaSelecionada,
-    );
-    contasPorEmail[emailNormalizado] = contaUsuario;
-    return ResultadoCadastro(contaUsuario: contaUsuario);
-  }
-
-  ContaUsuario? fazerLogin(String email, String senha) {
-    final contaUsuario = contasPorEmail[email.trim().toLowerCase()];
-    if (contaUsuario == null || contaUsuario.senha != senha) {
-      return null;
-    }
-    return contaUsuario;
-  }
-
-  ContaUsuario get usuarioGestorPadrao =>
-      contasPorEmail['chagas@plugselo.com']!;
-
-  ContaUsuario get usuarioRepositorPadrao =>
-      contasPorEmail['fernando@plugselo.com']!;
-
-  String? gerarCodigoRecuperacao(String email) {
-    final emailNormalizado = email.trim().toLowerCase();
-    if (!contasPorEmail.containsKey(emailNormalizado)) {
-      return null;
-    }
-
-    final codigoGerado = (Random().nextInt(900000) + 100000).toString();
-    codigosDeRecuperacaoPorEmail[emailNormalizado] = codigoGerado;
-    return codigoGerado;
-  }
-
-  bool redefinirSenha({
-    required String email,
-    required String codigo,
-    required String novaSenha,
-  }) {
-    final emailNormalizado = email.trim().toLowerCase();
-    final contaUsuario = contasPorEmail[emailNormalizado];
-    final codigoEsperado = codigosDeRecuperacaoPorEmail[emailNormalizado];
-
-    if (contaUsuario == null ||
-        codigoEsperado == null ||
-        codigoEsperado != codigo) {
-      return false;
-    }
-
-    contaUsuario.senha = novaSenha;
-    codigosDeRecuperacaoPorEmail.remove(emailNormalizado);
-    return true;
-  }
-}
-
-class CentralDeEstoque {
-  CentralDeEstoque._() {
-    _carregarDadosExemplo();
-  }
-
-  static final CentralDeEstoque instancia = CentralDeEstoque._();
-
-  final List<ProdutoCatalogo> _produtos = [];
-  final List<LoteEstoque> _lotes = [];
-  final List<AlertaValidade> _alertas = [];
-  final List<EventoEstoque> _eventos = [];
-  DateTime? _ultimaExecucaoRotina;
-  int _sequencia = 0;
-
-  List<String> get categoriasDisponiveis =>
-      _produtos.map((item) => item.categoria).toSet().toList()..sort();
-
-  List<String> get setoresDisponiveis =>
-      _produtos.map((item) => item.setor).toSet().toList()..sort();
-
-  List<String> get filiaisDisponiveis =>
-      _lotes.map((item) => item.filial).toSet().toList()..sort();
-
-  String get ultimaExecucaoFormatada {
-    final data = _ultimaExecucaoRotina;
-    if (data == null) {
-      return 'nao executada';
-    }
-    return formatarDataHora(data);
-  }
-
-  ProdutoCatalogo localizarOuCriarProduto(String ean13) {
-    final existente = primeiroOndeOuNulo(
-      _produtos,
-      (item) => item.ean13 == ean13,
-    );
-    if (existente != null) {
-      return existente;
-    }
-
-    final produto = ProdutoCatalogo(
-      ean13: ean13,
-      descricao: 'Produto EAN $ean13',
-      categoria: 'Mercearia',
-      setor: 'Gondola',
-      valorUnitario: 0,
-      estoqueMinimo: 5,
-    );
-    _produtos.add(produto);
-    return produto;
-  }
-
-  void cadastrarLote({
-    required String ean13,
-    required String descricao,
-    required String categoria,
-    required String setor,
-    required String codigoLote,
-    required int quantidade,
-    required double valorUnitario,
-    required DateTime validade,
-    required String filial,
-  }) {
-    var produto = primeiroOndeOuNulo(
-      _produtos,
-      (item) => item.ean13 == ean13,
-    );
-    produto ??= ProdutoCatalogo(
-      ean13: ean13,
-      descricao: descricao,
-      categoria: categoria,
-      setor: setor,
-      valorUnitario: valorUnitario,
-      estoqueMinimo: 5,
-    );
-
-    if (!_produtos.contains(produto)) {
-      _produtos.add(produto);
-    } else {
-      final indice = _produtos.indexOf(produto);
-      _produtos[indice] = ProdutoCatalogo(
-        ean13: ean13,
-        descricao: descricao,
-        categoria: categoria,
-        setor: setor,
-        valorUnitario: valorUnitario,
-        estoqueMinimo: produto.estoqueMinimo,
-      );
-      produto = _produtos[indice];
-    }
-
-    final lote = LoteEstoque(
-      id: 'lote-${++_sequencia}',
-      produto: produto,
-      codigoLote: codigoLote,
-      quantidadeAtual: quantidade,
-      valorUnitario: valorUnitario,
-      validade: validade,
-      filial: filial,
-      criadoEm: DateTime.now(),
-    );
-    _lotes.add(lote);
-    _eventos.add(
-      EventoEstoque(
-        id: 'evt-${++_sequencia}',
-        loteId: lote.id,
-        tipo: 'entrada',
-        quantidade: quantidade,
-        motivo: 'Cadastro de lote',
-        usuario: 'operacao',
-        criadoEm: DateTime.now(),
-        valorImpactado: lote.valorTotal,
-      ),
-    );
-  }
-
-  bool ajustarInventario({
-    required String loteId,
-    required int deltaQuantidade,
-    required String motivo,
-    required String usuario,
-  }) {
-    final indice = _lotes.indexWhere((item) => item.id == loteId);
-    if (indice == -1) {
-      return false;
-    }
-    final lote = _lotes[indice];
-    final novaQuantidade = lote.quantidadeAtual + deltaQuantidade;
-    if (novaQuantidade < 0) {
-      return false;
-    }
-
-    _lotes[indice] = lote.copyWith(quantidadeAtual: novaQuantidade);
-    _eventos.add(
-      EventoEstoque(
-        id: 'evt-${++_sequencia}',
-        loteId: lote.id,
-        tipo: 'ajuste_manual',
-        quantidade: deltaQuantidade,
-        motivo: motivo,
-        usuario: usuario,
-        criadoEm: DateTime.now(),
-        valorImpactado: deltaQuantidade * lote.valorUnitario,
-      ),
-    );
-    return true;
-  }
-
-  bool registrarSaidaViaIntegracao({
-    required String ean13,
-    required int quantidade,
-    required String filial,
-    required String origem,
-  }) {
-    final candidatos = _lotes
-        .where(
-          (item) =>
-              item.produto.ean13 == ean13 &&
-              item.filial == filial &&
-              item.quantidadeAtual > 0,
-        )
-        .toList()
-      ..sort((a, b) => a.validade.compareTo(b.validade));
-
-    if (candidatos.isEmpty) {
-      return false;
-    }
-
-    var restante = quantidade;
-    for (final lote in candidatos) {
-      if (restante == 0) {
-        break;
-      }
-      final indice = _lotes.indexWhere((item) => item.id == lote.id);
-      final consumo = min(restante, lote.quantidadeAtual);
-      _lotes[indice] = lote.copyWith(
-        quantidadeAtual: lote.quantidadeAtual - consumo,
-      );
-      _eventos.add(
-        EventoEstoque(
-          id: 'evt-${++_sequencia}',
-          loteId: lote.id,
-          tipo: 'saida_integracao',
-          quantidade: -consumo,
-          motivo: origem,
-          usuario: 'webhook:$origem',
-          criadoEm: DateTime.now(),
-          valorImpactado: consumo * lote.valorUnitario,
-        ),
-      );
-      restante -= consumo;
-    }
-    return restante == 0;
-  }
-
-  ResultadoRotinaDiaria executarVarreduraDiaria({
-    required String? filial,
-    required String usuario,
-  }) {
-    final lotes = _aplicarFiltrosBase(
-      FiltroDashboard()
-        ..filial = filial
-        ..periodo = PeriodoFiltro.todos,
-    );
-    var novosAlertas = 0;
-    var notificacoes = 0;
-
-    // 1. Verificacao de validade (Prioridade 1)
-    for (final lote in lotes) {
-      if (lote.quantidadeAtual <= 0 || lote.zonaValidade == ZonaValidade.seguro) {
-        continue;
-      }
-
-      final jaExiste = _alertas.any(
-        (alerta) =>
-            alerta.loteId == lote.id &&
-            alerta.zona == lote.zonaValidade &&
-            somenteData(alerta.criadoEm) == somenteData(DateTime.now()),
-      );
-      if (jaExiste) {
-        continue;
-      }
-
-      _gerarAlerta(
-        loteId: lote.id,
-        zona: lote.zonaValidade,
-        titulo: lote.zonaValidade == ZonaValidade.vencido
-            ? 'Lote vencido'
-            : 'Lote em risco',
-        descricao:
-            '${lote.produto.descricao} entrou na zona ${lote.zonaValidade.rotulo.toLowerCase()} com ${lote.quantidadeAtual} un.',
-      );
-      _eventos.add(
-        EventoEstoque(
-          id: 'evt-${++_sequencia}',
-          loteId: lote.id,
-          tipo: 'rotina_diaria',
-          quantidade: 0,
-          motivo: 'Varredura diaria',
-          usuario: usuario,
-          criadoEm: DateTime.now(),
-        ),
-      );
-      novosAlertas++;
-      notificacoes++;
-    }
-
-    // 2. Verificacao de falta de produto / ruptura (Prioridade 3)
-    final produtosNaFilial = _produtos
-        .where((produto) => lotes.any((lote) => lote.produto.ean13 == produto.ean13))
-        .toSet();
-
-    for (final produto in produtosNaFilial) {
-      final quantidadeTotalProduto = lotes
-          .where((lote) => lote.produto.ean13 == produto.ean13)
-          .fold<int>(0, (soma, lote) => soma + lote.quantidadeAtual);
-
-      if (quantidadeTotalProduto <= produto.estoqueMinimo) {
-        final jaNotificado = _alertas.any(
-          (alerta) =>
-              alerta.loteId == produto.ean13 &&
-              alerta.zona == ZonaValidade.ruptura &&
-              somenteData(alerta.criadoEm) == somenteData(DateTime.now()),
-        );
-
-        if (!jaNotificado) {
-          _gerarAlerta(
-            loteId: produto.ean13,
-            zona: ZonaValidade.ruptura,
-            titulo: 'Risco de Ruptura (Falta)',
-            descricao:
-                '${produto.descricao} esta com saldo critico de $quantidadeTotalProduto un (Minimo: ${produto.estoqueMinimo}). Reabasteca a gondola.',
-          );
-          novosAlertas++;
-          notificacoes++;
-        }
-      }
-    }
-
-    _ultimaExecucaoRotina = DateTime.now();
-    return ResultadoRotinaDiaria(
-      novosAlertas: novosAlertas,
-      notificacoesEnviadas: notificacoes,
-    );
-  }
-
-  void _gerarAlerta({
-    required String loteId,
-    required ZonaValidade zona,
-    required String titulo,
-    required String descricao,
-  }) {
-    _alertas.insert(
-      0,
-      AlertaValidade(
-        id: 'alt-${++_sequencia}',
-        loteId: loteId,
-        titulo: titulo,
-        descricao: descricao,
-        zona: zona,
-        canalNotificacao:
-            (zona == ZonaValidade.critico ||
-                zona == ZonaValidade.vencido ||
-                zona == ZonaValidade.ruptura)
-            ? 'Push + WhatsApp'
-            : 'Push',
-        criadoEm: DateTime.now(),
-      ),
-    );
-  }
-
-  void executarAcaoPreventiva({
-    required String loteId,
-    required String usuario,
-  }) {
-    final lote = primeiroOndeOuNulo(_lotes, (item) => item.id == loteId);
-    if (lote == null) {
+  void _submit(String value) {
+    final ean = extractEan13(value);
+    if (ean == null) {
+      showSnack(context, 'Código inválido. Informe 13 dígitos.');
       return;
     }
+    Navigator.of(context).pop(ean);
+  }
 
-    final valor = lote.valorTotal * (lote.zonaValidade == ZonaValidade.critico ? 0.6 : 0.35);
-    _eventos.insert(
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Captura de código')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Text(
+                'No web, a captura usa entrada manual para evitar travamentos de câmera em navegadores.',
+                style: TextStyle(color: corTextoSecundario, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _manualController,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: 'EAN-13'),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => _submit(_manualController.text),
+                style: primaryButton(),
+                child: const Text('Usar código'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Captura de código')),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: (capture) {
+              if (_handled) {
+                return;
+              }
+              final value = capture.barcodes.first.rawValue ?? '';
+              final ean = extractEan13(value);
+              if (ean != null) {
+                _handled = true;
+                Navigator.of(context).pop(ean);
+              }
+            },
+          ),
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 24,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Aponte para um código EAN-13'),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _manualController,
+                      decoration: const InputDecoration(labelText: 'Ou digite manualmente'),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => _submit(_manualController.text),
+                      style: primaryButton(),
+                      child: const Text('Confirmar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AppController extends ChangeNotifier {
+  AppController.seeded() : _repository = InventoryRepository.seeded() {
+    debugPrint(
+      'AppController.seeded(): controlador criado com ${_repository.stores.length} loja(s), '
+      '${_repository.users.length} usuário(s) e ${_repository.products.length} produto(s).',
+    );
+  }
+
+  final InventoryRepository _repository;
+  Session? session;
+  String _search = '';
+
+  List<StoreRecord> get storeOptions => _repository.stores;
+  List<StoreRecord> get displayStores => _repository.stores.where((store) => store.kind == StoreKind.store).toList();
+  StoreRecord? get distributionCenter => _repository.stores.where((store) => store.kind == StoreKind.distributionCenter).firstOrNull;
+  List<CategoryProfile> get categoryProfiles => kCategoryProfiles;
+  StoreRecord get activeStore => _repository.storeById(session!.storeId);
+  DashboardSnapshot get dashboard => _repository.dashboardFor(session!.storeId);
+  List<RecommendationItem> get recommendations =>
+      _repository.recommendationsFor(session!.storeId);
+  List<StockBatch> get fefoQueue => _repository.fefoQueue(session!.storeId);
+  List<ProductRecord> get filteredProducts =>
+      _repository.searchProducts(session!.storeId, _search);
+  List<AlertRecord> get alerts => _repository.alertsFor(session!.storeId);
+  List<StockBatch> get recentBatches => _repository.recentBatches(session!.storeId);
+  ReportSnapshot get report => _repository.reportFor(session!.storeId);
+  List<AuditRecord> get auditTrail => _repository.auditFor(session!.storeId);
+  ProductRecord? findProductByEan(String ean13) =>
+      _repository.findProductByEan(session!.storeId, ean13);
+  CategoryProfile? categoryProfileForName(String name) =>
+      kCategoryProfiles.where((item) => item.name == name).firstOrNull;
+
+  bool login(String email, String password) {
+    final auth = _repository.authenticate(email, password);
+    if (auth == null) {
+      return false;
+    }
+    session = auth;
+    _repository.refreshRules(auth.storeId, auth.user.fullName);
+    notifyListeners();
+    return true;
+  }
+
+  void logout() {
+    session = null;
+    _search = '';
+    notifyListeners();
+  }
+
+  void selectStore(String storeId) {
+    if (session == null) {
+      return;
+    }
+    session = Session(user: session!.user, storeId: storeId);
+    _repository.refreshRules(storeId, session!.user.fullName);
+    notifyListeners();
+  }
+
+  void updateSearch(String value) {
+    _search = value.trim();
+    notifyListeners();
+  }
+
+  int totalStockForProduct(String productId) =>
+      _repository.totalStockForProduct(session!.storeId, productId);
+
+  List<StockBatch> batchesForProduct(String productId) =>
+      _repository.batchesForProduct(session!.storeId, productId);
+
+  void registerBatch({
+    required String ean13,
+    required String description,
+    required String category,
+    required String sector,
+    required String batchCode,
+    required int quantity,
+    required int minStock,
+    required double unitValue,
+    required DateTime expiresAt,
+  }) {
+    final current = session!;
+    _repository.registerBatch(
+      storeId: current.storeId,
+      userName: current.user.fullName,
+      ean13: ean13,
+      description: description,
+      category: category,
+      sector: sector,
+      batchCode: batchCode,
+      quantity: quantity,
+      minStock: minStock,
+      unitValue: unitValue,
+      expiresAt: expiresAt,
+    );
+    notifyListeners();
+  }
+
+  bool consumeStock(String ean13, int quantity) {
+    final ok = _repository.consumeStockFefo(
+      storeId: session!.storeId,
+      ean13: ean13,
+      quantity: quantity,
+      userName: session!.user.fullName,
+    );
+    notifyListeners();
+    return ok;
+  }
+
+  void importSampleSheet() {
+    _repository.importSampleSheet(session!.storeId, session!.user.fullName);
+    notifyListeners();
+  }
+
+  void importApiPayload() {
+    _repository.importApiPayload(session!.storeId, session!.user.fullName);
+    notifyListeners();
+  }
+
+  void handleAlert(String alertId, AlertResolution resolution) {
+    _repository.resolveAlert(
+      storeId: session!.storeId,
+      alertId: alertId,
+      resolution: resolution,
+      userName: session!.user.fullName,
+    );
+    notifyListeners();
+  }
+
+  void refreshOperationalRules() {
+    _repository.refreshRules(session!.storeId, session!.user.fullName);
+    notifyListeners();
+  }
+
+  void registerCompany({required String name, required String cnpj}) {
+    _repository.registerCompany(name: name, cnpj: cnpj);
+    notifyListeners();
+  }
+}
+
+class InventoryRepository {
+  InventoryRepository.seeded() {
+    debugPrint('InventoryRepository.seeded(): iniciando carga inicial.');
+    _seed();
+    debugPrint(
+      'InventoryRepository.seeded(): carga finalizada com ${stores.length} loja(s), '
+      '${users.length} usuário(s), ${products.length} produto(s) e ${batches.length} lote(s).',
+    );
+  }
+
+  final List<StoreRecord> stores = [];
+  final List<UserRecord> users = [];
+  final List<ProductRecord> products = [];
+  final List<StockBatch> batches = [];
+  final List<AlertRecord> alerts = [];
+  final List<AuditRecord> audits = [];
+  int _sequence = 0;
+
+  Session? authenticate(String email, String password) {
+    final user = users.where((u) => u.email == email.trim().toLowerCase()).firstOrNull;
+    if (user == null || user.password != password) {
+      return null;
+    }
+    return Session(user: user, storeId: user.defaultStoreId);
+  }
+
+  StoreRecord storeById(String id) => stores.firstWhere((store) => store.id == id);
+  ProductRecord? findProductByEan(String storeId, String ean13) {
+    return products
+        .where((item) => item.storeId == storeId && item.ean13 == ean13)
+        .firstOrNull;
+  }
+
+  void registerCompany({required String name, required String cnpj}) {
+    final store = StoreRecord(
+      id: 'store-${++_sequence}',
+      name: '$name - Matriz',
+      code: 'MATRIZ-${_sequence.toString().padLeft(3, '0')}',
+      cnpj: cnpj,
+      kind: StoreKind.store,
+      regionLabel: 'Nova unidade',
+    );
+    stores.add(store);
+    audits.insert(
       0,
-      EventoEstoque(
-        id: 'evt-${++_sequencia}',
-        loteId: lote.id,
-        tipo: 'acao_preventiva',
-        quantidade: 0,
-        motivo: lote.zonaValidade == ZonaValidade.critico
-            ? 'Campanha de desconto automatica'
-            : 'Repaginacao sugerida pelo motor',
-        usuario: usuario,
-        criadoEm: DateTime.now(),
-        valorImpactado: valor,
+      AuditRecord(
+        id: 'audit-${++_sequence}',
+        storeId: store.id,
+        userName: 'sistema',
+        action: 'Cadastro da empresa',
+        details: 'Empresa $name criada com filial principal ${store.name}.',
+        financialImpact: 0,
+        createdAt: DateTime.now(),
       ),
     );
   }
 
-  DashboardValidade calcularDashboard(FiltroDashboard filtro) {
-    final lotes = _aplicarFiltrosBase(filtro);
-    final eventos = _aplicarFiltroEventos(filtro);
+  ProductRecord _upsertProduct({
+    required String storeId,
+    required String ean13,
+    required String description,
+    required String category,
+    required String sector,
+    required int minStock,
+    required double unitValue,
+  }) {
+    final current = products
+        .where((item) => item.storeId == storeId && item.ean13 == ean13)
+        .firstOrNull;
+    if (current != null) {
+      final updated = current.copyWith(
+        description: description,
+        category: category,
+        sector: sector,
+        minStock: minStock,
+        unitValue: unitValue,
+      );
+      final index = products.indexOf(current);
+      products[index] = updated;
+      return updated;
+    }
+    final created = ProductRecord(
+      id: 'product-${++_sequence}',
+      storeId: storeId,
+      ean13: ean13,
+      description: description,
+      category: category,
+      sector: sector,
+      minStock: minStock,
+      unitValue: unitValue,
+    );
+    products.add(created);
+    return created;
+  }
 
-    final lotesSeguros =
-        lotes.where((item) => item.zonaValidade == ZonaValidade.seguro).length;
-    final lotesCriticos =
-        lotes.where((item) => item.zonaValidade == ZonaValidade.critico).toList();
-    final lotesAlerta =
-        lotes.where((item) => item.zonaValidade == ZonaValidade.alerta).toList();
-    final lotesVencidos =
-        lotes.where((item) => item.zonaValidade == ZonaValidade.vencido).toList();
+  void registerBatch({
+    required String storeId,
+    required String userName,
+    required String ean13,
+    required String description,
+    required String category,
+    required String sector,
+    required String batchCode,
+    required int quantity,
+    required int minStock,
+    required double unitValue,
+    required DateTime expiresAt,
+  }) {
+    final product = _upsertProduct(
+      storeId: storeId,
+      ean13: ean13,
+      description: description,
+      category: category,
+      sector: sector,
+      minStock: minStock,
+      unitValue: unitValue,
+    );
+    final batch = StockBatch(
+      id: 'batch-${++_sequence}',
+      storeId: storeId,
+      storeName: storeById(storeId).name,
+      productId: product.id,
+      productDescription: product.description,
+      ean13: product.ean13,
+      category: product.category,
+      sector: product.sector,
+      batchCode: batchCode,
+      quantityCurrent: quantity,
+      unitValue: unitValue,
+      expiresAt: expiresAt,
+      createdAt: DateTime.now(),
+    );
+    batches.insert(0, batch);
+    audits.insert(
+      0,
+      AuditRecord(
+        id: 'audit-${++_sequence}',
+        storeId: storeId,
+        userName: userName,
+        action: 'Entrada de lote',
+        details: '${product.description} • lote $batchCode • $quantity un',
+        financialImpact: quantity * unitValue,
+        createdAt: DateTime.now(),
+      ),
+    );
+    refreshRules(storeId, userName);
+  }
 
-    return DashboardValidade(
-      totalDeLotes: lotes.length,
-      lotesSeguros: lotesSeguros,
-      lotesEmRisco: lotesCriticos.length + lotesAlerta.length + lotesVencidos.length,
-      itensCriticos: lotesCriticos.length + lotesVencidos.length,
-      itensEmAlerta: lotesAlerta.length,
-      valorLotesCriticos: lotesCriticos.fold<double>(
-            0,
-            (total, lote) => total + lote.valorTotal,
-          ) +
-          lotesVencidos.fold<double>(0, (total, lote) => total + lote.valorTotal),
-      valorDePerdasEvitadas: eventos
-          .where((item) => item.tipo == 'acao_preventiva')
-          .fold<double>(0, (total, evento) => total + evento.valorImpactado),
-      quantidadeTotalEmEstoque:
-          lotes.fold<int>(0, (total, lote) => total + lote.quantidadeAtual),
-      quantidadeVencida:
-          lotesVencidos.fold<int>(0, (total, lote) => total + lote.quantidadeAtual),
-      totalAlertas: obterAlertasRecentes(filtro).length,
-      acoesPreventivasExecutadas:
-          eventos.where((item) => item.tipo == 'acao_preventiva').length,
+  bool consumeStockFefo({
+    required String storeId,
+    required String ean13,
+    required int quantity,
+    required String userName,
+  }) {
+    if (quantity <= 0) {
+      return false;
+    }
+    final queue = fefoQueue(storeId)
+        .where((batch) => batch.ean13 == ean13 && batch.quantityCurrent > 0)
+        .toList();
+    if (queue.isEmpty) {
+      return false;
+    }
+    final total = queue.fold<int>(0, (sum, batch) => sum + batch.quantityCurrent);
+    if (total < quantity) {
+      return false;
+    }
+    var remaining = quantity;
+    for (final item in queue) {
+      if (remaining == 0) {
+        break;
+      }
+      final index = batches.indexWhere((batch) => batch.id == item.id);
+      final consumed = min(remaining, item.quantityCurrent);
+      batches[index] = item.copyWith(quantityCurrent: item.quantityCurrent - consumed);
+      audits.insert(
+        0,
+        AuditRecord(
+          id: 'audit-${++_sequence}',
+          storeId: storeId,
+          userName: userName,
+          action: 'Saída por integração',
+          details: '${item.productDescription} • lote ${item.batchCode} • -$consumed un',
+          financialImpact: consumed * item.unitValue,
+          createdAt: DateTime.now(),
+        ),
+      );
+      remaining -= consumed;
+    }
+    refreshRules(storeId, userName);
+    return true;
+  }
+
+  void importSampleSheet(String storeId, String userName) {
+    registerBatch(
+      storeId: storeId,
+      userName: userName,
+      ean13: '7891000000914',
+      description: 'Queijo Coalho 320g',
+      category: 'Laticínios',
+      sector: 'Frios',
+      batchCode: generateBatchCode(),
+      quantity: 14,
+      minStock: 6,
+      unitValue: 14.90,
+      expiresAt: DateTime.now().add(const Duration(days: 8)),
     );
   }
 
-  List<LoteEstoque> obterFilaFefo(FiltroDashboard filtro) {
-    final lotes = _aplicarFiltrosBase(filtro)
-        .where((item) => item.quantidadeAtual > 0)
-        .toList()
-      ..sort((a, b) {
-        final comparacaoValidade = a.validade.compareTo(b.validade);
-        if (comparacaoValidade != 0) {
-          return comparacaoValidade;
-        }
-        return a.criadoEm.compareTo(b.criadoEm);
-      });
-    return lotes;
+  void importApiPayload(String storeId, String userName) {
+    registerBatch(
+      storeId: storeId,
+      userName: userName,
+      ean13: '7891000000921',
+      description: 'Mix de Folhas Higienizadas',
+      category: 'Hortifruti',
+      sector: 'FLV',
+      batchCode: generateBatchCode(),
+      quantity: 9,
+      minStock: 4,
+      unitValue: 8.70,
+      expiresAt: DateTime.now().add(const Duration(days: 4)),
+    );
   }
 
-  List<AlertaValidade> obterAlertasRecentes(FiltroDashboard filtro) {
-    final lotesFiltrados = _aplicarFiltrosBase(filtro);
-    final idsDosLotes = lotesFiltrados.map((item) => item.id).toSet();
-    final eansDosProdutos = lotesFiltrados.map((item) => item.produto.ean13).toSet();
-    return _alertas
-        .where(
-          (item) =>
-              idsDosLotes.contains(item.loteId) ||
-              eansDosProdutos.contains(item.loteId),
-        )
-        .where((item) => _dataDentroDoPeriodo(item.criadoEm, filtro.periodo))
-        .toList();
-  }
+  void refreshRules(String storeId, String userName) {
+    final storeProducts = products.where((item) => item.storeId == storeId).toList();
+    final storeBatches = batches.where((item) => item.storeId == storeId).toList();
 
-  List<SugestaoAcaoPreventiva> obterSugestoesDeAcao(FiltroDashboard filtro) {
-    return obterFilaFefo(filtro)
-        .where(
-          (lote) =>
-              lote.zonaValidade == ZonaValidade.critico ||
-              lote.zonaValidade == ZonaValidade.alerta ||
-              lote.zonaValidade == ZonaValidade.vencido,
-        )
-        .map((lote) {
-          final percentual =
-              lote.zonaValidade == ZonaValidade.critico ? 0.25 : 0.15;
-          return SugestaoAcaoPreventiva(
-            lote: lote,
-            titulo: lote.zonaValidade == ZonaValidade.vencido
-                ? 'Bloquear venda e tratar perda consolidada'
-                : lote.zonaValidade == ZonaValidade.critico
-                ? 'Aplicar desconto agressivo'
-                : 'Rebaixar preco e repaginar ponto de venda',
-            descricao: lote.zonaValidade == ZonaValidade.vencido
-                ? 'Produto ja vencido. O sistema recomenda baixa imediata e ajuste manual se a perda ja estiver consolidada.'
-                : 'Sugestao automatica para reduzir risco financeiro antes do vencimento.',
-            valorImpactado: lote.valorTotal * percentual,
-          );
-        })
-        .toList();
-  }
-
-  String gerarRelatorioTexto(FiltroDashboard filtro) {
-    final dashboard = calcularDashboard(filtro);
-    final alertas = obterAlertasRecentes(filtro);
-    final acoes = _aplicarFiltroEventos(filtro)
-        .where((item) => item.tipo == 'acao_preventiva')
-        .toList();
-
-    final buffer = StringBuffer()
-      ..writeln('RELATORIO BIPSTOCK')
-      ..writeln('Emitido em: ${formatarDataHora(DateTime.now())}')
-      ..writeln('Filial: ${filtro.filial ?? 'Todas'}')
-      ..writeln('Categoria: ${filtro.categoria ?? 'Todas'}')
-      ..writeln('Setor: ${filtro.setor ?? 'Todos'}')
-      ..writeln('Zona: ${filtro.zona?.rotulo ?? 'Todas'}')
-      ..writeln('Periodo: ${filtro.periodo.rotulo}')
-      ..writeln('')
-      ..writeln('INDICADORES')
-      ..writeln('- Lotes totais: ${dashboard.totalDeLotes}')
-      ..writeln('- Lotes em risco: ${dashboard.lotesEmRisco}')
-      ..writeln('- Valor dos lotes criticos: ${formatarMoeda(dashboard.valorLotesCriticos)}')
-      ..writeln('- Perdas evitadas: ${formatarMoeda(dashboard.valorDePerdasEvitadas)}')
-      ..writeln('')
-      ..writeln('ALERTAS')
-      ..writeln(
-        alertas.isEmpty
-            ? '- Nenhum alerta no periodo.'
-            : alertas
-                .take(10)
-                .map(
-                  (item) =>
-                      '- ${item.titulo}: ${item.descricao} (${formatarDataHora(item.criadoEm)})',
-                )
-                .join('\n'),
-      )
-      ..writeln('')
-      ..writeln('ACOES TOMADAS')
-      ..writeln(
-        acoes.isEmpty
-            ? '- Nenhuma acao preventiva executada no periodo.'
-            : acoes
-                .take(10)
-                .map(
-                  (item) =>
-                      '- ${item.motivo} â€¢ ${formatarMoeda(item.valorImpactado)} â€¢ ${formatarDataHora(item.criadoEm)}',
-                )
-                .join('\n'),
+    for (final batch in storeBatches) {
+      if (batch.quantityCurrent <= 0) {
+        continue;
+      }
+      final zone = batch.zone;
+      if (zone == RiskZone.safe) {
+        continue;
+      }
+      final exists = alerts.any(
+        (item) =>
+            item.referenceId == batch.id &&
+            item.zone == zone &&
+            !item.acknowledged &&
+            sameDate(item.createdAt, DateTime.now()),
       );
-    return buffer.toString();
+      if (!exists) {
+        alerts.insert(
+          0,
+          AlertRecord(
+            id: 'alert-${++_sequence}',
+            storeId: storeId,
+            referenceId: batch.id,
+            title: zone == RiskZone.expired ? 'Produto vencido' : 'Produto próximo do vencimento',
+            description:
+                '${batch.productDescription} • lote ${batch.batchCode} • ${batch.quantityCurrent} un • validade ${shortDate(batch.expiresAt)}',
+            zone: zone,
+            channel: zone == RiskZone.critical ? 'Push + WhatsApp' : 'Push',
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+    }
+
+    for (final product in storeProducts) {
+      final total = totalStockForProduct(storeId, product.id);
+      if (total > product.minStock) {
+        continue;
+      }
+      final exists = alerts.any(
+        (item) =>
+            item.referenceId == product.id &&
+            item.zone == RiskZone.stockout &&
+            !item.acknowledged &&
+            sameDate(item.createdAt, DateTime.now()),
+      );
+      if (!exists) {
+        alerts.insert(
+          0,
+          AlertRecord(
+            id: 'alert-${++_sequence}',
+            storeId: storeId,
+            referenceId: product.id,
+            title: 'Risco de ruptura',
+            description:
+                '${product.description} com saldo $total un e estoque mínimo ${product.minStock} un.',
+            zone: RiskZone.stockout,
+            channel: 'Push + E-mail',
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+    }
+
+    audits.insert(
+      0,
+      AuditRecord(
+        id: 'audit-${++_sequence}',
+        storeId: storeId,
+        userName: userName,
+        action: 'Varredura operacional',
+        details: 'Motor diário executado para validade, FEFO e ruptura.',
+        financialImpact: 0,
+        createdAt: DateTime.now(),
+      ),
+    );
   }
 
-  List<LoteEstoque> _aplicarFiltrosBase(FiltroDashboard filtro) {
-    return _lotes.where((lote) {
-      if (filtro.categoria != null && lote.produto.categoria != filtro.categoria) {
-        return false;
+  void resolveAlert({
+    required String storeId,
+    required String alertId,
+    required AlertResolution resolution,
+    required String userName,
+  }) {
+    final index = alerts.indexWhere((alert) => alert.id == alertId);
+    if (index == -1) {
+      return;
+    }
+    final alert = alerts[index];
+    alerts[index] = alert.copyWith(acknowledged: true);
+
+    double impact = 0;
+    String details = alert.description;
+    if (alert.zone == RiskZone.expired && resolution == AlertResolution.discard) {
+      final batch = batches.where((item) => item.id == alert.referenceId).firstOrNull;
+      if (batch != null) {
+        impact = batch.quantityCurrent * batch.unitValue;
       }
-      if (filtro.setor != null && lote.produto.setor != filtro.setor) {
-        return false;
+    }
+    if (resolution == AlertResolution.promotion) {
+      final batch = batches.where((item) => item.id == alert.referenceId).firstOrNull;
+      if (batch != null) {
+        impact = batch.quantityCurrent * batch.unitValue * 0.4;
       }
-      if (filtro.filial != null && lote.filial != filtro.filial) {
-        return false;
+    }
+    if (resolution == AlertResolution.restock) {
+      final product = products.where((item) => item.id == alert.referenceId).firstOrNull;
+      if (product != null) {
+        details = '${product.description} reabastecido com pedido sugerido.';
       }
-      if (filtro.zona != null && lote.zonaValidade != filtro.zona) {
-        return false;
+    }
+
+    audits.insert(
+      0,
+      AuditRecord(
+        id: 'audit-${++_sequence}',
+        storeId: storeId,
+        userName: userName,
+        action: resolution.label,
+        details: details,
+        financialImpact: impact,
+        createdAt: DateTime.now(),
+      ),
+    );
+  }
+
+  DashboardSnapshot dashboardFor(String storeId) {
+    final storeProducts = products.where((item) => item.storeId == storeId).toList();
+    final storeBatches = batches.where((item) => item.storeId == storeId).toList();
+    final storeAlerts = alerts.where((item) => item.storeId == storeId && !item.acknowledged);
+    final savings = audits
+        .where((item) => item.storeId == storeId)
+        .where((item) => item.action == AlertResolution.promotion.label)
+        .fold<double>(0, (sum, item) => sum + item.financialImpact);
+    final losses = storeBatches
+        .where((item) => item.zone == RiskZone.expired)
+        .fold<double>(0, (sum, item) => sum + item.quantityCurrent * item.unitValue);
+
+    return DashboardSnapshot(
+      nearExpiry: storeBatches
+          .where((item) => item.zone == RiskZone.alert || item.zone == RiskZone.critical)
+          .length,
+      expired: storeBatches.where((item) => item.zone == RiskZone.expired).length,
+      lossesAvoided: savings,
+      estimatedSavings: max(savings, losses * 0.35),
+      productsRegistered: storeProducts.length,
+      activeAlerts: storeAlerts.length,
+    );
+  }
+
+  List<RecommendationItem> recommendationsFor(String storeId) {
+    final items = <RecommendationItem>[];
+    for (final batch in fefoQueue(storeId)) {
+      if (batch.zone == RiskZone.safe) {
+        continue;
       }
-      return _dataDentroDoPeriodo(lote.criadoEm, filtro.periodo);
+      if (batch.zone == RiskZone.expired) {
+        items.add(
+          RecommendationItem(
+            title: batch.productDescription,
+            description: 'Lote ${batch.batchCode} vencido. Bloquear venda e consolidar perda.',
+            action: 'Descartar',
+            impact: batch.quantityCurrent * batch.unitValue,
+          ),
+        );
+      } else if (batch.zone == RiskZone.critical) {
+        items.add(
+          RecommendationItem(
+            title: batch.productDescription,
+            description:
+                'Vence em breve. Sugerir promoção automática e reposicionamento na gôndola.',
+            action: 'Promover',
+            impact: batch.quantityCurrent * batch.unitValue * 0.4,
+          ),
+        );
+      } else {
+        items.add(
+          RecommendationItem(
+            title: batch.productDescription,
+            description: 'Entrou em alerta. Aplicar desconto moderado e revisar giro.',
+            action: 'Ajustar preço',
+            impact: batch.quantityCurrent * batch.unitValue * 0.2,
+          ),
+        );
+      }
+    }
+    for (final product in products.where((item) => item.storeId == storeId)) {
+      final total = totalStockForProduct(storeId, product.id);
+      if (total <= product.minStock) {
+        items.add(
+          RecommendationItem(
+            title: product.description,
+            description: 'Saldo abaixo do mínimo. Recomendar novo pedido ao fornecedor.',
+            action: 'Repor ${max(product.minStock * 2 - total, product.minStock)} un',
+            impact: product.unitValue * max(product.minStock * 2 - total, product.minStock),
+          ),
+        );
+      }
+    }
+    return items;
+  }
+
+  List<ProductRecord> searchProducts(String storeId, String query) {
+    final normalized = query.trim().toLowerCase();
+    final storeProducts = products.where((item) => item.storeId == storeId).toList();
+    if (normalized.isEmpty) {
+      return storeProducts;
+    }
+    return storeProducts.where((product) {
+      final batchCodes = batches
+          .where((batch) => batch.productId == product.id)
+          .map((batch) => batch.batchCode.toLowerCase())
+          .join(' ');
+      return product.description.toLowerCase().contains(normalized) ||
+          product.ean13.contains(normalized) ||
+          product.category.toLowerCase().contains(normalized) ||
+          batchCodes.contains(normalized);
     }).toList();
   }
 
-  List<EventoEstoque> _aplicarFiltroEventos(FiltroDashboard filtro) {
-    final ids = _aplicarFiltrosBase(
-      FiltroDashboard()
-        ..categoria = filtro.categoria
-        ..setor = filtro.setor
-        ..filial = filtro.filial
-        ..zona = filtro.zona
-        ..periodo = PeriodoFiltro.todos,
-    ).map((item) => item.id).toSet();
-
-    return _eventos
-        .where((item) => ids.contains(item.loteId))
-        .where((item) => _dataDentroDoPeriodo(item.criadoEm, filtro.periodo))
-        .toList();
+  List<StockBatch> batchesForProduct(String storeId, String productId) {
+    return batches
+        .where((batch) => batch.storeId == storeId && batch.productId == productId)
+        .toList()
+      ..sort((a, b) => a.expiresAt.compareTo(b.expiresAt));
   }
 
-  bool _dataDentroDoPeriodo(DateTime data, PeriodoFiltro periodo) {
-    final hoje = somenteData(DateTime.now());
-    final alvo = somenteData(data);
-    switch (periodo) {
-      case PeriodoFiltro.hoje:
-        return alvo == hoje;
-      case PeriodoFiltro.seteDias:
-        return !alvo.isBefore(hoje.subtract(const Duration(days: 7)));
-      case PeriodoFiltro.quinzeDias:
-        return !alvo.isBefore(hoje.subtract(const Duration(days: 15)));
-      case PeriodoFiltro.trintaDias:
-        return !alvo.isBefore(hoje.subtract(const Duration(days: 30)));
-      case PeriodoFiltro.todos:
-        return true;
-    }
+  int totalStockForProduct(String storeId, String productId) {
+    return batchesForProduct(storeId, productId)
+        .fold<int>(0, (sum, batch) => sum + batch.quantityCurrent);
   }
 
-  void _carregarDadosExemplo() {
-    final produtos = [
-      const ProdutoCatalogo(
-        ean13: '7891000000013',
-        descricao: 'Iogurte Natural 170g',
-        categoria: 'Laticinios',
-        setor: 'Frios',
-        valorUnitario: 4.89,
-        estoqueMinimo: 8,
-      ),
-      const ProdutoCatalogo(
-        ean13: '7891000000020',
-        descricao: 'Pao de Forma Integral',
-        categoria: 'Padaria',
-        setor: 'Padaria',
-        valorUnitario: 9.50,
-        estoqueMinimo: 10,
-      ),
-      const ProdutoCatalogo(
-        ean13: '7891000000037',
-        descricao: 'Maca Gala Premium',
-        categoria: 'Hortifruti',
-        setor: 'FLV',
-        valorUnitario: 2.30,
-        estoqueMinimo: 12,
-      ),
-      const ProdutoCatalogo(
-        ean13: '7891000000044',
-        descricao: 'Frango Resfriado Bandeja',
-        categoria: 'Acougue',
-        setor: 'Pereciveis',
-        valorUnitario: 18.90,
-        estoqueMinimo: 10,
-      ),
-    ];
-    _produtos.addAll(produtos);
+  List<StockBatch> fefoQueue(String storeId) {
+    return batches
+        .where((batch) => batch.storeId == storeId && batch.quantityCurrent > 0)
+        .toList()
+      ..sort((a, b) {
+        final expiry = a.expiresAt.compareTo(b.expiresAt);
+        if (expiry != 0) {
+          return expiry;
+        }
+        return a.createdAt.compareTo(b.createdAt);
+      });
+  }
 
-    final agora = DateTime.now();
-    _lotes.addAll([
-      LoteEstoque(
-        id: 'lote-1',
-        produto: produtos[0],
-        codigoLote: 'IOG-101',
-        quantidadeAtual: 18,
-        valorUnitario: 4.89,
-        validade: agora.add(const Duration(days: 5)),
-        filial: 'Nordestao Tirol',
-        criadoEm: agora.subtract(const Duration(days: 2)),
+  List<AlertRecord> alertsFor(String storeId) {
+    return alerts.where((item) => item.storeId == storeId).toList();
+  }
+
+  List<StockBatch> recentBatches(String storeId) {
+    return batches.where((item) => item.storeId == storeId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  ReportSnapshot reportFor(String storeId) {
+    final storeAudits = audits.where((item) => item.storeId == storeId).toList();
+    final savings = storeAudits
+        .where((item) => item.action == AlertResolution.promotion.label)
+        .fold<double>(0, (sum, item) => sum + item.financialImpact);
+    final losses = storeAudits
+        .where((item) => item.action == AlertResolution.discard.label)
+        .fold<double>(0, (sum, item) => sum + item.financialImpact);
+    final savedProducts = storeAudits
+        .where((item) => item.action == AlertResolution.promotion.label)
+        .length;
+    final roi = losses == 0 ? 100.0 : (savings / max(losses, 1)) * 100;
+    final reduction =
+        savings == 0 ? 0.0 : (savings / max(losses + savings, 1)) * 100;
+    return ReportSnapshot(
+      losses: losses,
+      savings: savings,
+      savedProducts: savedProducts,
+      roi: roi.toDouble(),
+      lossReduction: reduction.toDouble(),
+    );
+  }
+
+  List<AuditRecord> auditFor(String storeId) {
+    return audits.where((item) => item.storeId == storeId).toList();
+  }
+
+  void _seed() {
+    debugPrint('_seed(): preparando dados mockados iniciais do BipStock.');
+    final cd = StoreRecord(
+      id: 'store-cd',
+      name: 'CD - Centro de Distribuicao',
+      code: 'CD',
+      cnpj: '12.345.678/0001-00',
+      kind: StoreKind.distributionCenter,
+      regionLabel: 'Hub principal',
+    );
+    final store1 = StoreRecord(
+      id: 'store-1',
+      name: 'Nordestao Tirol',
+      code: 'TIROL',
+      cnpj: '12.345.678/0001-01',
+      kind: StoreKind.store,
+      regionLabel: 'Zona Leste',
+    );
+    final store2 = StoreRecord(
+      id: 'store-2',
+      name: 'Nordestao Lagoa Nova',
+      code: 'LAGOA-NOVA',
+      cnpj: '12.345.678/0001-02',
+      kind: StoreKind.store,
+      regionLabel: 'Zona Sul',
+    );
+    final store3 = StoreRecord(
+      id: 'store-3',
+      name: 'Nordestao Ponta Negra',
+      code: 'PONTA-NEGRA',
+      cnpj: '12.345.678/0001-03',
+      kind: StoreKind.store,
+      regionLabel: 'Litoral Sul',
+    );
+    final store4 = StoreRecord(
+      id: 'store-4',
+      name: 'Nordestao Zona Norte',
+      code: 'ZONA-NORTE',
+      cnpj: '12.345.678/0001-04',
+      kind: StoreKind.store,
+      regionLabel: 'Zona Norte',
+    );
+    stores.addAll([cd, store1, store2, store3, store4]);
+
+    users.addAll([
+      UserRecord(
+        id: 'user-1',
+        fullName: 'Chagas Gestor',
+        email: 'gestor@bipstock.com',
+        password: '1234',
+        role: UserRole.manager,
+        defaultStoreId: cd.id,
       ),
-      LoteEstoque(
-        id: 'lote-2',
-        produto: produtos[0],
-        codigoLote: 'IOG-098',
-        quantidadeAtual: 10,
-        valorUnitario: 4.89,
-        validade: agora.add(const Duration(days: 12)),
-        filial: 'Nordestao Tirol',
-        criadoEm: agora.subtract(const Duration(days: 5)),
-      ),
-      LoteEstoque(
-        id: 'lote-3',
-        produto: produtos[1],
-        codigoLote: 'PAD-220',
-        quantidadeAtual: 22,
-        valorUnitario: 9.50,
-        validade: agora.add(const Duration(days: 2)),
-        filial: 'Nordestao Salgado Filho',
-        criadoEm: agora.subtract(const Duration(days: 1)),
-      ),
-      LoteEstoque(
-        id: 'lote-4',
-        produto: produtos[2],
-        codigoLote: 'FLV-908',
-        quantidadeAtual: 35,
-        valorUnitario: 2.30,
-        validade: agora.add(const Duration(days: 18)),
-        filial: 'Nordestao Cidade Jardim',
-        criadoEm: agora.subtract(const Duration(days: 3)),
-      ),
-      LoteEstoque(
-        id: 'lote-5',
-        produto: produtos[3],
-        codigoLote: 'ACO-331',
-        quantidadeAtual: 8,
-        valorUnitario: 18.90,
-        validade: agora.subtract(const Duration(days: 1)),
-        filial: 'Nordestao Tirol',
-        criadoEm: agora.subtract(const Duration(days: 4)),
+      UserRecord(
+        id: 'user-2',
+        fullName: 'Fernando Operação',
+        email: 'operacao@bipstock.com',
+        password: '1234',
+        role: UserRole.operator,
+        defaultStoreId: store1.id,
       ),
     ]);
-    _sequencia = 100;
+
+    registerBatch(
+      storeId: store1.id,
+      userName: 'seed',
+      ean13: '7891000000013',
+      description: 'Iogurte Natural 170g',
+      category: 'Laticínios',
+      sector: 'Frios',
+      batchCode: 'IOG-101',
+      quantity: 18,
+      minStock: 8,
+      unitValue: 4.89,
+      expiresAt: DateTime.now().add(const Duration(days: 5)),
+    );
+    registerBatch(
+      storeId: store1.id,
+      userName: 'seed',
+      ean13: '7891000000020',
+      description: 'Pão de Forma Integral',
+      category: 'Padaria',
+      sector: 'Padaria',
+      batchCode: 'PAD-220',
+      quantity: 7,
+      minStock: 10,
+      unitValue: 9.50,
+      expiresAt: DateTime.now().add(const Duration(days: 2)),
+    );
+    registerBatch(
+      storeId: store1.id,
+      userName: 'seed',
+      ean13: '7891000000037',
+      description: 'Maçã Gala Premium',
+      category: 'Hortifruti',
+      sector: 'FLV',
+      batchCode: 'FLV-908',
+      quantity: 35,
+      minStock: 12,
+      unitValue: 2.30,
+      expiresAt: DateTime.now().add(const Duration(days: 16)),
+    );
+    registerBatch(
+      storeId: store2.id,
+      userName: 'seed',
+      ean13: '7891000000044',
+      description: 'Frango Resfriado Bandeja',
+      category: 'Açougue',
+      sector: 'Perecíveis',
+      batchCode: 'ACO-331',
+      quantity: 8,
+      minStock: 10,
+      unitValue: 18.90,
+      expiresAt: DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final retailStores = [store1, store2, store3, store4];
+    final csvRows = kSeedProductCsv.trim().split('\n').skip(1).toList();
+    for (var i = 0; i < csvRows.length; i++) {
+      final cols = csvRows[i].split(',');
+      if (cols.length < 7) {
+        continue;
+      }
+      final profile = categoryProfileFromCsv(cols[2].trim());
+      final retailStore = retailStores[i % retailStores.length];
+      registerBatch(
+        storeId: retailStore.id,
+        userName: 'seed',
+        ean13: csvIdToEan13(cols[0].trim(), i),
+        description: normalizeSeedText(cols[1].trim()),
+        category: profile.name,
+        sector: profile.sector,
+        batchCode: 'CSV-${i.toString().padLeft(4, '0')}',
+        quantity: int.tryParse(cols[4].trim()) ?? 0,
+        minStock: max(5, ((int.tryParse(cols[4].trim()) ?? 0) * 0.2).round()),
+        unitValue: double.tryParse(cols[3].trim()) ?? 0,
+        expiresAt: parseCsvDate(cols[5].trim()),
+      );
+    }
+    debugPrint('_seed(): dados iniciais carregados com sucesso.');
   }
 }
 
-BoxDecoration caixaPadrao() {
-  return BoxDecoration(
-    color: corSuperficie,
-    borderRadius: BorderRadius.circular(24),
-    border: Border.all(color: corBordaSuave),
-    boxShadow: const [
-      BoxShadow(
-        color: Color(0x0F3A57A6),
-        blurRadius: 24,
-        offset: Offset(0, 12),
-      ),
-    ],
-  );
+class Session {
+  const Session({required this.user, required this.storeId});
+
+  final UserRecord user;
+  final String storeId;
 }
 
-ButtonStyle botaoPrimario() {
+class StoreRecord {
+  const StoreRecord({
+    required this.id,
+    required this.name,
+    required this.code,
+    required this.cnpj,
+    required this.kind,
+    required this.regionLabel,
+  });
+
+  final String id;
+  final String name;
+  final String code;
+  final String cnpj;
+  final StoreKind kind;
+  final String regionLabel;
+}
+
+class UserRecord {
+  const UserRecord({
+    required this.id,
+    required this.fullName,
+    required this.email,
+    required this.password,
+    required this.role,
+    required this.defaultStoreId,
+  });
+
+  final String id;
+  final String fullName;
+  final String email;
+  final String password;
+  final UserRole role;
+  final String defaultStoreId;
+}
+
+enum UserRole { manager, operator }
+
+enum StoreKind { distributionCenter, store }
+
+extension on UserRole {
+  String get label => this == UserRole.manager ? 'Gestor' : 'Operação';
+}
+
+class ProductRecord {
+  const ProductRecord({
+    required this.id,
+    required this.storeId,
+    required this.ean13,
+    required this.description,
+    required this.category,
+    required this.sector,
+    required this.minStock,
+    required this.unitValue,
+  });
+
+  final String id;
+  final String storeId;
+  final String ean13;
+  final String description;
+  final String category;
+  final String sector;
+  final int minStock;
+  final double unitValue;
+
+  ProductRecord copyWith({
+    String? description,
+    String? category,
+    String? sector,
+    int? minStock,
+    double? unitValue,
+  }) {
+    return ProductRecord(
+      id: id,
+      storeId: storeId,
+      ean13: ean13,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      sector: sector ?? this.sector,
+      minStock: minStock ?? this.minStock,
+      unitValue: unitValue ?? this.unitValue,
+    );
+  }
+}
+
+enum RiskZone { safe, alert, critical, expired, stockout }
+
+extension on RiskZone {
+  String get label {
+    switch (this) {
+      case RiskZone.safe:
+        return 'Seguro';
+      case RiskZone.alert:
+        return 'Alerta';
+      case RiskZone.critical:
+        return 'Crítico';
+      case RiskZone.expired:
+        return 'Vencido';
+      case RiskZone.stockout:
+        return 'Ruptura';
+    }
+  }
+}
+
+class StockBatch {
+  const StockBatch({
+    required this.id,
+    required this.storeId,
+    required this.storeName,
+    required this.productId,
+    required this.productDescription,
+    required this.ean13,
+    required this.category,
+    required this.sector,
+    required this.batchCode,
+    required this.quantityCurrent,
+    required this.unitValue,
+    required this.expiresAt,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String storeId;
+  final String storeName;
+  final String productId;
+  final String productDescription;
+  final String ean13;
+  final String category;
+  final String sector;
+  final String batchCode;
+  final int quantityCurrent;
+  final double unitValue;
+  final DateTime expiresAt;
+  final DateTime createdAt;
+
+  RiskZone get zone => zoneForDate(expiresAt);
+
+  StockBatch copyWith({int? quantityCurrent}) {
+    return StockBatch(
+      id: id,
+      storeId: storeId,
+      storeName: storeName,
+      productId: productId,
+      productDescription: productDescription,
+      ean13: ean13,
+      category: category,
+      sector: sector,
+      batchCode: batchCode,
+      quantityCurrent: quantityCurrent ?? this.quantityCurrent,
+      unitValue: unitValue,
+      expiresAt: expiresAt,
+      createdAt: createdAt,
+    );
+  }
+}
+
+class AlertRecord {
+  const AlertRecord({
+    required this.id,
+    required this.storeId,
+    required this.referenceId,
+    required this.title,
+    required this.description,
+    required this.zone,
+    required this.channel,
+    required this.createdAt,
+    this.acknowledged = false,
+  });
+
+  final String id;
+  final String storeId;
+  final String referenceId;
+  final String title;
+  final String description;
+  final RiskZone zone;
+  final String channel;
+  final DateTime createdAt;
+  final bool acknowledged;
+
+  AlertRecord copyWith({bool? acknowledged}) {
+    return AlertRecord(
+      id: id,
+      storeId: storeId,
+      referenceId: referenceId,
+      title: title,
+      description: description,
+      zone: zone,
+      channel: channel,
+      createdAt: createdAt,
+      acknowledged: acknowledged ?? this.acknowledged,
+    );
+  }
+}
+
+enum AlertResolution { promotion, restock, discard }
+
+extension on AlertResolution {
+  String get label {
+    switch (this) {
+      case AlertResolution.promotion:
+        return 'Promoção aplicada';
+      case AlertResolution.restock:
+        return 'Reabastecimento';
+      case AlertResolution.discard:
+        return 'Descarte registrado';
+    }
+  }
+}
+
+class AuditRecord {
+  const AuditRecord({
+    required this.id,
+    required this.storeId,
+    required this.userName,
+    required this.action,
+    required this.details,
+    required this.financialImpact,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String storeId;
+  final String userName;
+  final String action;
+  final String details;
+  final double financialImpact;
+  final DateTime createdAt;
+}
+
+class DashboardSnapshot {
+  const DashboardSnapshot({
+    required this.nearExpiry,
+    required this.expired,
+    required this.lossesAvoided,
+    required this.estimatedSavings,
+    required this.productsRegistered,
+    required this.activeAlerts,
+  });
+
+  final int nearExpiry;
+  final int expired;
+  final double lossesAvoided;
+  final double estimatedSavings;
+  final int productsRegistered;
+  final int activeAlerts;
+}
+
+class RecommendationItem {
+  const RecommendationItem({
+    required this.title,
+    required this.description,
+    required this.action,
+    required this.impact,
+  });
+
+  final String title;
+  final String description;
+  final String action;
+  final double impact;
+}
+
+class ReportSnapshot {
+  const ReportSnapshot({
+    required this.losses,
+    required this.savings,
+    required this.savedProducts,
+    required this.roi,
+    required this.lossReduction,
+  });
+
+  final double losses;
+  final double savings;
+  final int savedProducts;
+  final double roi;
+  final double lossReduction;
+}
+
+class CategoryProfile {
+  const CategoryProfile({
+    required this.name,
+    required this.sector,
+    required this.shelfLifeDays,
+  });
+
+  final String name;
+  final String sector;
+  final int shelfLifeDays;
+}
+
+const List<CategoryProfile> kCategoryProfiles = [
+  CategoryProfile(name: 'Mercearia', sector: 'Gondola', shelfLifeDays: 180),
+  CategoryProfile(name: 'Laticinios', sector: 'Frios', shelfLifeDays: 15),
+  CategoryProfile(name: 'Bebidas', sector: 'Bebidas', shelfLifeDays: 120),
+  CategoryProfile(name: 'Padaria', sector: 'Padaria', shelfLifeDays: 7),
+  CategoryProfile(name: 'Acougue', sector: 'Pereciveis', shelfLifeDays: 5),
+  CategoryProfile(name: 'Hortifruti', sector: 'FLV', shelfLifeDays: 10),
+  CategoryProfile(name: 'Higiene e Beleza', sector: 'Higiene', shelfLifeDays: 240),
+  CategoryProfile(name: 'Casa e Limpeza', sector: 'Limpeza', shelfLifeDays: 240),
+  CategoryProfile(name: 'Eletronicos', sector: 'Acessorios', shelfLifeDays: 365),
+  CategoryProfile(name: 'Esporte e Viagem', sector: 'Conveniencia', shelfLifeDays: 365),
+  CategoryProfile(name: 'Moda e Acessorios', sector: 'Conveniencia', shelfLifeDays: 365),
+];
+
+const String kSeedProductCsv = '''
+ID_Produto,Produto,Categoria,Preco_Unit,Estoque_Atual,Data_Vencimento,Status_Vencimento
+101-91,Arroz Integral 5kg,Food and beverages,12.12,170,01/07/2026,Critico
+102-38,Feijao Carioca 1kg,Food and beverages,13.8,82,23/12/2026,Seguro
+103-79,Leite Integral 1L,Food and beverages,10.67,246,28/06/2026,Critico
+104-13,Iogurte de Morango 1L,Food and beverages,11.07,149,10/08/2026,Seguro
+105-87,Refrigerante de Cola 2L,Food and beverages,7.08,131,23/12/2026,Seguro
+106-99,Suco de Laranja Integral 1L,Food and beverages,37.92,142,11/07/2026,Medio
+107-85,Cafe Torrado e Moido 500g,Food and beverages,22.05,33,30/06/2026,Critico
+108-99,Acucar Refinado 1kg,Food and beverages,30.65,172,30/06/2026,Critico
+109-37,Oleo de Soja 900ml,Food and beverages,62.45,202,29/06/2026,Critico
+110-21,Macarrao Espaguete 500g,Food and beverages,28.11,213,03/07/2026,Critico
+111-87,Molho de Tomate Sache,Food and beverages,21.24,52,11/07/2026,Medio
+112-78,Biscoito Recheado Chocolate,Food and beverages,12.93,223,29/06/2026,Critico
+113-80,Pao de Forma Tradicional,Food and beverages,22.94,346,03/07/2026,Critico
+114-83,Manteiga com Sal 200g,Food and beverages,16.94,65,28/06/2026,Critico
+115-94,Queijo Prato Fatiado kg,Food and beverages,19.06,178,29/06/2026,Critico
+116-39,Presunto Cozido Fatiado kg,Food and beverages,57.06,224,02/07/2026,Critico
+117-64,Cerveja Puro Malte Lata 350ml,Food and beverages,30.37,235,10/08/2026,Seguro
+118-20,Vinho Tinto Seco 750ml,Food and beverages,81.4,120,29/06/2026,Critico
+119-94,Chocolate em Barra 90g,Food and beverages,97.37,181,03/07/2026,Critico
+120-22,Salgadinho de Batata Classica,Food and beverages,92.6,263,11/07/2026,Medio
+121-68,Peito de Frango File 1kg,Food and beverages,46.61,169,30/06/2026,Critico
+122-83,Carne Moida de Acem 1kg,Food and beverages,60.87,14,30/06/2026,Critico
+123-52,Costela Suina Resfriada kg,Food and beverages,24.49,115,29/06/2026,Critico
+124-41,Ovos Brancos Grandes 12un,Food and beverages,92.98,39,01/07/2026,Critico
+125-94,Sorvete de Creme 1.5L,Food and beverages,18.08,318,29/06/2026,Critico
+126-78,Agua Mineral Sem Gas 1.5L,Food and beverages,42.82,236,03/07/2026,Critico
+127-14,Maionese Tradicional 500g,Food and beverages,48.09,243,11/07/2026,Medio
+128-44,Ketchup Picante 400g,Food and beverages,55.97,55,10/08/2026,Seguro
+129-82,Cereal Matinal Matuto,Food and beverages,76.9,133,10/08/2026,Seguro
+130-31,Sardinha em Lata,Food and beverages,97.03,139,11/07/2026,Medio
+131-31,Sabonete em Barra Hidratante,Health and beauty,44.65,150,25/02/2027,Seguro
+132-72,Shampoo Nutricao Profunda,Health and beauty,77.93,135,22/08/2026,Seguro
+133-14,Condicionador Brilho Intenso,Health and beauty,71.95,142,26/07/2026,Seguro
+134-80,Creme Dental Protecao Total,Health and beauty,89.25,72,25/08/2026,Seguro
+135-15,Desodorante Antitranspirante Roll-on,Health and beauty,26.02,53,30/06/2026,Critico
+136-12,Fio Dental Menta 50m,Health and beauty,13.5,134,25/08/2026,Seguro
+137-67,Papel Higienico Folha Dupla x12,Health and beauty,99.3,239,30/06/2026,Critico
+138-16,Protetor Solar FPS 30,Health and beauty,51.69,27,21/02/2027,Seguro
+139-49,Hidratante Corporal 400ml,Health and beauty,54.73,151,21/02/2027,Seguro
+140-54,Espuma de Barbear Refrescante,Health and beauty,27.0,135,26/07/2026,Seguro
+141-89,Aparelho de Barbear Descartavel c/2,Health and beauty,30.24,115,25/08/2026,Seguro
+142-23,Sabonete Liquido Refil,Health and beauty,89.14,244,30/06/2026,Critico
+143-69,Alcool em Gel Antisseptico 70%,Health and beauty,37.55,146,26/07/2026,Seguro
+144-84,Protetor Labial Hidratante,Health and beauty,95.44,191,22/08/2026,Seguro
+145-21,Creme de Pentear Cachos,Health and beauty,27.5,74,30/06/2026,Critico
+146-56,Algodao em Disco c/50,Health and beauty,74.97,44,25/08/2026,Seguro
+147-38,Enxaguante Bucal Zero Alcool,Health and beauty,80.96,44,30/06/2026,Critico
+148-73,Creme de Hidratacao Facial,Health and beauty,94.47,40,22/08/2026,Seguro
+149-16,Detergente Liquido Neutro 500ml,Home and lifestyle,99.79,166,10/07/2026,Medio
+150-13,Desinfetante Eucalipto 1L,Home and lifestyle,73.22,238,24/07/2026,Seguro
+151-54,Amaciante de Roupas Concentrado 2L,Home and lifestyle,41.24,132,10/07/2026,Medio
+152-32,Sabao em Po Ativo 1kg,Home and lifestyle,81.68,132,10/07/2026,Medio
+153-61,Esponja de Aco Pacote c/4,Home and lifestyle,51.32,122,24/10/2026,Seguro
+154-84,Saco de Lixo Reforcado 50L,Home and lifestyle,65.94,122,24/10/2026,Seguro
+155-46,Agua Sanitaria Multiuso 1L,Home and lifestyle,14.36,151,10/07/2026,Medio
+156-55,Pano de Prato Algodao c/3,Home and lifestyle,21.5,151,10/07/2026,Medio
+157-19,Lampada LED 12W Branca,Home and lifestyle,26.26,95,24/10/2026,Seguro
+158-96,Pilha Alcalina AAA c/4,Home and lifestyle,60.96,218,24/10/2026,Seguro
+159-20,Organizador Plastico Transparente,Home and lifestyle,70.11,218,24/10/2026,Seguro
+160-24,Vela Aromatica Lavanda,Home and lifestyle,42.08,218,24/10/2026,Seguro
+161-46,Inseticida Aerosol Multi,Home and lifestyle,67.09,218,24/10/2026,Seguro
+162-81,Limpador Multiuso Classico,Home and lifestyle,96.7,218,24/10/2026,Seguro
+163-44,Vassoura de Nylon com Cabo,Home and lifestyle,35.38,218,24/10/2026,Seguro
+164-32,Sabao em Barra Azul c/5,Home and lifestyle,95.49,218,24/10/2026,Seguro
+165-38,Inseticida Eletrico Aparelho,Home and lifestyle,96.98,218,24/10/2026,Seguro
+166-70,Flanela de Limpeza Microfibra,Home and lifestyle,23.65,218,24/10/2026,Seguro
+167-27,Fone de Ouvido Intra-auricular,Electronic accessories,82.33,70,26/06/2027,Seguro
+168-39,Carregador Portatil 10000mAh,Electronic accessories,26.61,42,26/06/2027,Seguro
+169-15,Cabo HDMI High Speed 2m,Electronic accessories,99.69,99,26/06/2027,Seguro
+170-22,Mouse Sem Fio Otimizado,Electronic accessories,74.89,53,08/11/2027,Seguro
+171-87,Cartao de Memoria MicroSD 64GB,Electronic accessories,40.94,62,08/11/2027,Seguro
+172-87,Pendrive USB 3.0 32GB,Electronic accessories,75.82,40,08/11/2027,Seguro
+173-95,Adaptador de Tomada Padrao,Electronic accessories,46.77,60,26/06/2027,Seguro
+174-89,Suporte de Celular Automotivo,Electronic accessories,32.32,10,26/06/2027,Seguro
+175-68,Pelicula de Vidro Universal,Electronic accessories,54.07,95,26/06/2027,Seguro
+176-79,Pilha Recarregavel AA c/2,Electronic accessories,18.22,46,26/06/2027,Seguro
+177-31,Cabo USB-C de Carregamento Rapido,Electronic accessories,80.48,51,08/11/2027,Seguro
+178-99,Adaptador Bluetooth USB,Electronic accessories,37.95,97,08/11/2027,Seguro
+179-88,Garrafa Termica Inox 750ml,Sports and travel,76.82,62,26/06/2027,Seguro
+180-87,Joelheira Elastica de Compressao,Sports and travel,52.26,12,26/06/2027,Seguro
+181-89,Corda de Pular Ajustavel,Sports and travel,79.74,73,26/06/2027,Seguro
+182-35,Faixa Elastica de Exercicios,Sports and travel,77.5,43,26/06/2027,Seguro
+183-50,Kit de Meias Cano Alto x3,Sports and travel,54.27,46,26/06/2027,Seguro
+184-75,Mochila de Costas Casual,Sports and travel,13.59,58,26/06/2027,Seguro
+185-93,Bone Esportivo Dry-Fit,Sports and travel,41.06,83,26/06/2027,Seguro
+186-29,Toalha de Microfibra Esportiva,Sports and travel,19.24,80,26/06/2027,Seguro
+187-57,Oculos de Natacao Antiembacante,Sports and travel,39.43,94,26/06/2027,Seguro
+188-41,Caneleira de Peso 2kg Par,Sports and travel,46.22,62,26/06/2027,Seguro
+189-53,Tapete de Yoga em EVA,Sports and travel,13.98,98,26/06/2027,Seguro
+190-25,Bolsa Termica Impermeavel,Sports and travel,39.75,96,26/06/2027,Seguro
+191-23,Chinelo de Borracha Classico,Fashion accessories,97.79,49,26/06/2027,Seguro
+192-36,Meia Invisivel Algodao x3,Fashion accessories,67.26,80,26/06/2027,Seguro
+193-01,Cinto Casual Ajustavel,Fashion accessories,13.79,78,26/06/2027,Seguro
+194-43,Carteira de Couro Slim,Fashion accessories,68.71,41,26/06/2027,Seguro
+195-23,Relogio Digital de Pulso,Fashion accessories,56.53,55,26/06/2027,Seguro
+196-84,Oculos de Sol Protecao UV,Fashion accessories,23.82,54,26/06/2027,Seguro
+197-39,Bone Aba Reta Urbano,Fashion accessories,34.21,51,08/11/2027,Seguro
+198-44,Presilha de Cabelo Kit c/4,Fashion accessories,21.87,69,08/11/2027,Seguro
+199-73,Ecobag de Algodao Cru,Fashion accessories,20.97,78,08/11/2027,Seguro
+200-23,Lenco de Pescoco Estampado,Fashion accessories,50.2,81,08/11/2027,Seguro
+''';
+
+ButtonStyle primaryButton() {
   return FilledButton.styleFrom(
-    minimumSize: const Size.fromHeight(56),
+    minimumSize: const Size.fromHeight(54),
     backgroundColor: corPrimariaNordestao,
     foregroundColor: Colors.white,
+    textStyle: const TextStyle(fontWeight: FontWeight.w800),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
   );
 }
 
-String? validarObrigatorio(String? valor) {
-  if (valor == null || valor.trim().isEmpty) {
-    return 'Campo obrigatorio';
+ButtonStyle outlinedButton() {
+  return OutlinedButton.styleFrom(
+    foregroundColor: Colors.white,
+    side: const BorderSide(color: corBordaSuave),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    minimumSize: const Size(0, 48),
+  );
+}
+
+CategoryProfile categoryProfileFromCsv(String sourceCategory) {
+  switch (sourceCategory) {
+    case 'Health and beauty':
+      return kCategoryProfiles[6];
+    case 'Home and lifestyle':
+      return kCategoryProfiles[7];
+    case 'Electronic accessories':
+      return kCategoryProfiles[8];
+    case 'Sports and travel':
+      return kCategoryProfiles[9];
+    case 'Fashion accessories':
+      return kCategoryProfiles[10];
+    case 'Food and beverages':
+    default:
+      return kCategoryProfiles[0];
+  }
+}
+
+String csvIdToEan13(String source, int index) {
+  final digits = source.replaceAll(RegExp(r'[^0-9]'), '');
+  final padded = (digits + (1000000000000 + index).toString()).substring(0, 13);
+  return padded;
+}
+
+String suggestedExpiryFor(int shelfLifeDays) {
+  return DateTime.now()
+      .add(Duration(days: shelfLifeDays))
+      .toIso8601String()
+      .split('T')
+      .first;
+}
+
+DateTime parseCsvDate(String value) {
+  final parts = value.split('/');
+  if (parts.length != 3) {
+    return DateTime.now().add(const Duration(days: 30));
+  }
+  return DateTime(
+    int.parse(parts[2]),
+    int.parse(parts[1]),
+    int.parse(parts[0]),
+  );
+}
+
+String normalizeSeedText(String value) {
+  return value
+      .replaceAll('Ã£', 'a')
+      .replaceAll('Ã§', 'c')
+      .replaceAll('Ã­', 'i')
+      .replaceAll('Ã¡', 'a')
+      .replaceAll('Ã©', 'e')
+      .replaceAll('Ã³', 'o')
+      .replaceAll('Ãº', 'u')
+      .replaceAll('Ã¢', 'a')
+      .replaceAll('Ãª', 'e')
+      .replaceAll('Ãµ', 'o')
+      .replaceAll('Ã‰', 'E')
+      .replaceAll('Ã“', 'O')
+      .replaceAll('Â', '');
+}
+
+String? validateRequired(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Campo obrigatório';
   }
   return null;
 }
 
-Color corDaZona(ZonaValidade zona) {
-  switch (zona) {
-    case ZonaValidade.vencido:
-      return corRiscoVencido;
-    case ZonaValidade.ruptura:
-      return Colors.black87;
-    case ZonaValidade.critico:
-      return corRiscoCritico;
-    case ZonaValidade.alerta:
-      return corRiscoAlerta;
-    case ZonaValidade.seguro:
-      return corRiscoSeguro;
+String? validateEmail(String? value) {
+  final text = value?.trim() ?? '';
+  if (text.isEmpty) {
+    return 'Campo obrigatório';
   }
+  if (!text.contains('@')) {
+    return 'E-mail inválido';
+  }
+  return null;
 }
 
-ZonaValidade zonaParaData(DateTime validade) {
-  final dias = somenteData(validade)
-      .difference(somenteData(DateTime.now()))
-      .inDays;
-  if (dias < 0) {
-    return ZonaValidade.vencido;
+String? validateEan13(String? value) {
+  final text = value?.trim() ?? '';
+  if (!RegExp(r'^\d{13}$').hasMatch(text)) {
+    return 'Informe um EAN-13 válido';
   }
-  if (dias <= 7) {
-    return ZonaValidade.critico;
-  }
-  if (dias <= 15) {
-    return ZonaValidade.alerta;
-  }
-  return ZonaValidade.seguro;
+  return null;
 }
 
-String? extrairEan13(String valorLido) {
-  final match = RegExp(r'\d{13}').firstMatch(valorLido);
+String? validatePositiveInt(String? value) {
+  final number = int.tryParse(value ?? '');
+  if (number == null || number <= 0) {
+    return 'Informe um número maior que zero';
+  }
+  return null;
+}
+
+String? extractEan13(String input) {
+  final match = RegExp(r'\d{13}').firstMatch(input);
   return match?.group(0);
 }
 
-String gerarCodigoLote() {
-  final agora = DateTime.now();
-  return 'L${agora.year}${agora.month.toString().padLeft(2, '0')}${agora.day.toString().padLeft(2, '0')}${agora.millisecond.toString().padLeft(3, '0')}';
+double parseCurrency(String input) {
+  return double.tryParse(input.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
 }
 
-double parseMoeda(String valor) {
-  final normalizado = valor.replaceAll('.', '').replaceAll(',', '.').trim();
-  return double.tryParse(normalizado) ?? 0;
+String money(double value) => 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+
+String shortDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day/$month/${date.year}';
 }
 
-String formatarMoeda(double valor) {
-  final texto = valor.toStringAsFixed(2).replaceAll('.', ',');
-  return 'R\$ $texto';
+String shortDateTime(DateTime date) {
+  final hour = date.hour.toString().padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
+  return '${shortDate(date)} $hour:$minute';
 }
 
-String formatarData(DateTime data) {
-  final dia = data.day.toString().padLeft(2, '0');
-  final mes = data.month.toString().padLeft(2, '0');
-  final ano = data.year.toString();
-  return '$dia/$mes/$ano';
+String generateBatchCode() {
+  final now = DateTime.now();
+  return 'LOT-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecond.toString().padLeft(3, '0')}';
 }
 
-String formatarDataHora(DateTime data) {
-  final hora = data.hour.toString().padLeft(2, '0');
-  final minuto = data.minute.toString().padLeft(2, '0');
-  return '${formatarData(data)} $hora:$minuto';
+RiskZone zoneForDate(DateTime date) {
+  final days = DateTime(date.year, date.month, date.day)
+      .difference(DateTime.now().copyDate())
+      .inDays;
+  if (days < 0) {
+    return RiskZone.expired;
+  }
+  if (days <= 7) {
+    return RiskZone.critical;
+  }
+  if (days <= 15) {
+    return RiskZone.alert;
+  }
+  return RiskZone.safe;
 }
 
-DateTime somenteData(DateTime data) {
-  return DateTime(data.year, data.month, data.day);
-}
-
-extension on ZonaValidade {
-  String get rotulo {
-    switch (this) {
-      case ZonaValidade.vencido:
-        return 'Vencido';
-      case ZonaValidade.ruptura:
-        return 'Em Falta';
-      case ZonaValidade.critico:
-        return 'Critico';
-      case ZonaValidade.alerta:
-        return 'Alerta';
-      case ZonaValidade.seguro:
-        return 'Seguro';
-    }
+Color zoneColor(RiskZone zone) {
+  switch (zone) {
+    case RiskZone.safe:
+      return corRiscoSeguro;
+    case RiskZone.alert:
+      return corRiscoAlerta;
+    case RiskZone.critical:
+      return corRiscoCritico;
+    case RiskZone.expired:
+      return corRiscoVencido;
+    case RiskZone.stockout:
+      return corSecundariaNordestao;
   }
 }
 
-T? primeiroOndeOuNulo<T>(Iterable<T> itens, bool Function(T item) teste) {
-  for (final item in itens) {
-    if (teste(item)) {
-      return item;
-    }
-  }
-  return null;
+bool sameDate(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
+void showSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+extension<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
+}
+
+extension on DateTime {
+  DateTime copyDate() => DateTime(year, month, day);
+}
